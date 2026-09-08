@@ -310,7 +310,11 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .tab-panel{display:none;flex:1;overflow-y:auto;padding:var(--space-3)}
 .tab-panel.active{display:block}
 .panel-section{margin-bottom:var(--space-4)}
-.panel-section h4{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-disabled);margin-bottom:var(--space-2);font-weight:600}
+.panel-toggle{display:flex;align-items:center;gap:4px;width:100%;background:none;border:none;padding:0;cursor:pointer;font:inherit;color:inherit;margin-bottom:var(--space-2)}
+.panel-toggle h4{font-size:var(--text-xs);text-transform:uppercase;letter-spacing:.08em;color:var(--color-text-disabled);font-weight:600;margin:0}
+.panel-toggle .chevron{width:12px;height:12px;color:var(--color-text-disabled);transition:transform .15s;flex-shrink:0}
+.panel-section.collapsed .panel-toggle .chevron{transform:rotate(-90deg)}
+.panel-section.collapsed .panel-body{display:none}
 .prop-row{display:flex;gap:var(--space-2);margin-bottom:var(--space-2);align-items:center}
 .prop-row label{display:flex;align-items:center;gap:var(--space-1);flex:1;font-size:var(--text-xs);color:var(--color-text-muted)}
 .prop-row label input,.prop-row label select,.prop-row label textarea{flex:1;background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-base);min-height:44px}
@@ -435,6 +439,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .lp-brand:hover {
   color: var(--color-accent-hover);
 }
+.lp-version{font-size:10px;font-weight:400;color:var(--color-text-disabled);margin-left:2px;align-self:flex-end;padding-bottom:2px;}
 
 /* ==========================================================================
    Toast notification (STYLE_GUIDE §7.5)
@@ -688,7 +693,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
      ========================================================================= -->
 <header class="toolbar" id="toolbar">
   <!-- Brand / About link -->
-  <a class="lp-brand" id="lp-brand" href="about.html" aria-label="About Layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>layout</a>
+  <a class="lp-brand" id="lp-brand" href="about.html" aria-label="About Layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>layout<span class="lp-version">v0.2.0</span></a>
 
   <div class="toolbar-divider"></div>
 
@@ -696,6 +701,14 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
   <button class="tool-btn" id="theme-toggle" aria-label="Switch to dark mode" title="Toggle theme">
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
   </button>
+  <div class="toolbar-divider"></div>
+
+  <div class="toolbar-group">
+    <button class="tool-btn" id="btn-new" title="New Project"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
+    <button class="tool-btn" id="btn-save" title="Save Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="tool-btn" id="btn-import" title="Import Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></button>
+  </div>
+
   <div class="toolbar-divider"></div>
 
   <div class="toolbar-group">
@@ -767,12 +780,14 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
     </div>
     <div class="tab-content">
       <div class="tab-panel active" id="properties-panel" role="tabpanel" aria-labelledby="properties-tab">
-        <div class="panel-section"><h4>Position</h4>
+        <div class="panel-section"><button class="panel-toggle"><h4>Position</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
           <div class="prop-row"><label>X <input type="number" id="prop-x" value="0" aria-label="Position X"></label><label>Y <input type="number" id="prop-y" value="0" aria-label="Position Y"></label></div>
           <div class="prop-row"><label>W <input type="number" id="prop-w" value="100" aria-label="Width"></label><label>H <input type="number" id="prop-h" value="100" aria-label="Height"></label></div>
         </div>
         <div class="panel-section" id="prop-text-section" style="display:none">
-          <h4>Text</h4>
+          <button class="panel-toggle"><h4>Text</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
           <!-- Rich text toolbar row 1: character formatting -->
           <div class="rte-toolbar">
             <button class="rte-btn" id="prop-bold-btn" title="Bold"><b>B</b></button>
@@ -793,7 +808,6 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
             <span class="rte-sep"></span>
             <button class="rte-btn" id="prop-link-btn" title="Insert Link">🔗</button>
             <button class="rte-btn" id="prop-char-btn" title="Special Characters">Ω</button>
-            <button class="rte-btn" id="prop-ins-img-btn" title="Insert Image">🖼</button>
           </div>
           <!-- Font: family, size, weight, color -->
           <div class="rte-font-row">
@@ -816,20 +830,37 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
           <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-ar" aria-label="Auto resize"> Auto Resize H</label></div>
           <div class="prop-row" style="display:none" id="prop-ar-extra"><label>Min <input type="number" id="prop-minh" value="0" min="0" max="2000" style="width:52px" aria-label="Min height"></label><label>Max <input type="number" id="prop-maxh" value="0" min="0" max="5000" style="width:52px" aria-label="Max height"></label></div>
           <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-dc" aria-label="Drop cap"> Drop Cap</label><label style="flex:1"><input type="checkbox" id="prop-hy" aria-label="Hyphenation"> Hyphenation</label></div>
-          <input type="file" id="inline-image-input" accept="image/*" style="display:none">
         </div>
-        <div class="panel-section" id="prop-doc-section" style="display:none"><h4>Document</h4>
+        <div class="panel-section" id="prop-box-section">
+          <button class="panel-toggle"><h4>Box</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
+          <div class="prop-row"><label>Fill <input type="color" id="prop-tb-fill" value="#FFFFFF" aria-label="Box fill"></label><label>Fill Op <input type="number" id="prop-tb-fillOpacity" value="100" min="0" max="100" aria-label="Box fill opacity" style="width:50px"></label></div>
+          <div class="prop-row"><label>Stroke <input type="color" id="prop-tb-stroke" value="#111113" aria-label="Box stroke"></label><label>Stroke W <input type="number" id="prop-tb-sw" value="1" min="0" max="50" step=".5" aria-label="Box stroke width" style="width:50px"></label></div>
+          <div class="prop-row"><label>Opacity <input type="number" id="prop-tb-opacity" value="100" min="0" max="100" aria-label="Box opacity" style="width:50px"></label><label>Radius <input type="number" id="prop-tb-radius" value="0" min="0" aria-label="Box radius" style="width:50px"></label></div>
+          <div class="prop-row"><label>Rot <input type="number" id="prop-tb-rot" value="0" min="0" max="360" step="1" aria-label="Rotation (degrees)" style="width:60px">°</label></div>
+        </div>
+        <div class="panel-section" id="prop-doc-section" style="display:none"><button class="panel-toggle"><h4>Document</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
           <div class="prop-row"><label>W <input type="number" id="prop-doc-w" value="850" min="100" max="5000" aria-label="Page width"></label><label>H <input type="number" id="prop-doc-h" value="1100" min="100" max="5000" aria-label="Page height"></label><label>Ori <select id="prop-doc-ori" aria-label="Orientation" style="width:80px"><option value="">Custom</option><option value="letter-p">Letter P</option><option value="letter-l">Letter L</option><option value="a4-p">A4 P</option><option value="a4-l">A4 L</option></select></label></div>
         </div>
-        <div class="panel-section" id="prop-image-section" style="display:none"><h4>Image</h4><button class="small-btn" id="prop-image-btn">Change Image</button><input type="file" id="image-file-input" accept="image/*" style="display:none"></div>
-        <div class="panel-section"><h4>Style</h4>
-          <div class="prop-row"><label>Fill <input type="color" id="prop-fill" value="#FFFFFF" aria-label="Fill color"></label><label>Fill Op <input type="number" id="prop-fillOpacity" value="100" min="0" max="100" aria-label="Fill opacity" style="width:50px"></label></div>
-          <div class="prop-row"><label>Stroke <input type="color" id="prop-stroke" value="#111113" aria-label="Stroke color"></label><label>Stroke Op <input type="number" id="prop-strokeOpacity" value="100" min="0" max="100" aria-label="Stroke opacity" style="width:50px"></label></div>
-          <div class="prop-row"><label>Stroke W <input type="number" id="prop-sw" value="1" min="0" max="50" step=".5" aria-label="Stroke width"></label><label>Opacity <input type="number" id="prop-opacity" value="100" min="0" max="100" aria-label="Opacity"></label></div>
-          <div class="prop-row"><label>Radius <input type="number" id="prop-radius" value="0" min="0" aria-label="Border radius"></label><label>Rot <input type="number" id="prop-rot" value="0" min="0" max="360" step="1" aria-label="Rotation (degrees)" style="width:60px">°</label></div>
+        <div class="panel-section" id="prop-image-section" style="display:none"><button class="panel-toggle"><h4>Image</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body"><button class="small-btn" id="prop-image-btn">Change Image</button><input type="file" id="image-file-input" accept="image/*" style="display:none"></div>
         </div>
+        <input type="hidden" id="prop-fill" value="#FFFFFF">
+        <input type="hidden" id="prop-fillOpacity" value="100">
+        <input type="hidden" id="prop-stroke" value="#111113">
+        <input type="hidden" id="prop-strokeOpacity" value="100">
+        <input type="hidden" id="prop-sw" value="1">
+        <input type="hidden" id="prop-opacity" value="100">
+        <input type="hidden" id="prop-radius" value="0">
+        <input type="hidden" id="prop-rot" value="0">
 
       </div>
+</div>
+</div>
+</div>
+</div>
+</div>
       <div class="tab-panel" id="layers-panel" role="tabpanel" aria-labelledby="layers-tab"><div class="layer-list" id="layer-list" role="list" aria-label="Element layers"></div></div>
     </div>
   </aside>
@@ -1706,7 +1737,7 @@ function updateProps() {
   if (el.type === 'text') {
     ts.style.display = 'block';
     var ed = $('prop-text-content');
-    if (ed && ed.innerHTML !== (el.richText || el.text)) ed.innerHTML = el.richText || el.text;
+    if (ed && document.activeElement !== ed && ed.innerHTML !== (el.richText || el.text)) ed.innerHTML = el.richText || el.text;
     $('prop-ff').value = el.fontFamily;
     $('prop-fs').value = el.fontSize;
     $('prop-fw').value = el.fontWeight;
@@ -1746,6 +1777,13 @@ function updateProps() {
   $('prop-opacity').value = el.opacity;
   $('prop-radius').value = el.radius;
   $('prop-rot').value = el.rotation || 0;
+  $('prop-tb-fill').value = el.fill === 'transparent' ? '#FFFFFF' : el.fill;
+  $('prop-tb-fillOpacity').value = el.fillOpacity != null ? el.fillOpacity : 100;
+  $('prop-tb-stroke').value = el.stroke;
+  $('prop-tb-sw').value = el.strokeWidth;
+  $('prop-tb-opacity').value = el.opacity;
+  $('prop-tb-radius').value = el.radius;
+  $('prop-tb-rot').value = el.rotation || 0;
 }
 
 function bindProps() {
@@ -1754,14 +1792,22 @@ function bindProps() {
     { id: 'prop-y', prop: 'y', parse: function(v) { return parseInt(v) || 0; } },
     { id: 'prop-w', prop: 'w', parse: function(v) { return parseInt(v) || 10; } },
     { id: 'prop-h', prop: 'h', parse: function(v) { return parseInt(v) || 10; } },
-    { id: 'prop-fill', prop: 'fill' },
-    { id: 'prop-fillOpacity', prop: 'fillOpacity', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-stroke', prop: 'stroke' },
+    { id: 'prop-fill', prop: 'fill', sync: 'prop-tb-fill' },
+    { id: 'prop-fillOpacity', prop: 'fillOpacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-fillOpacity' },
+    { id: 'prop-stroke', prop: 'stroke', sync: 'prop-tb-stroke' },
     { id: 'prop-strokeOpacity', prop: 'strokeOpacity', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-sw', prop: 'strokeWidth', parse: function(v) { return parseFloat(v) || 0; } },
-    { id: 'prop-opacity', prop: 'opacity', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-radius', prop: 'radius', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-rot', prop: 'rotation', parse: function(v) { return parseInt(v) || 0; } }
+    { id: 'prop-sw', prop: 'strokeWidth', parse: function(v) { return parseFloat(v) || 0; }, sync: 'prop-tb-sw' },
+    { id: 'prop-opacity', prop: 'opacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-opacity' },
+    { id: 'prop-radius', prop: 'radius', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-radius' },
+    { id: 'prop-rot', prop: 'rotation', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-rot' },
+    { id: 'prop-tb-rot', prop: 'rotation', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-rot' },
+    /* Text box style (mirrors general style — same data fields) */
+    { id: 'prop-tb-fill', prop: 'fill', sync: 'prop-fill' },
+    { id: 'prop-tb-fillOpacity', prop: 'fillOpacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-fillOpacity' },
+    { id: 'prop-tb-stroke', prop: 'stroke', sync: 'prop-stroke' },
+    { id: 'prop-tb-sw', prop: 'strokeWidth', parse: function(v) { return parseFloat(v) || 0; }, sync: 'prop-sw' },
+    { id: 'prop-tb-opacity', prop: 'opacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-opacity' },
+    { id: 'prop-tb-radius', prop: 'radius', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-radius' }
   ];
 
   map.forEach(function(m) {
@@ -1769,6 +1815,10 @@ function bindProps() {
     if (!el) return;
     el.addEventListener('input', function() {
       var v = m.parse ? m.parse(this.value) : this.value;
+      if (m.sync) {
+        var s = $(m.sync);
+        if (s) s.value = v;
+      }
       var patch = {};
       patch[m.prop] = v;
       state.selectedElements.forEach(function(id) { updEl(id, patch); });
@@ -1779,10 +1829,30 @@ function bindProps() {
   var tc = $('prop-text-content');
   if (tc) {
     var textEditTimer = null;
+    var savedRange = null;
+
+    /* Persist selection before user clicks toolbar controls */
+    tc.addEventListener('mouseup', function() {
+      var sel = window.getSelection();
+      if (sel.rangeCount && sel.toString()) savedRange = sel.getRangeAt(0).cloneRange();
+      else savedRange = null;
+    });
+    tc.addEventListener('keyup', function() {
+      var sel = window.getSelection();
+      if (sel.rangeCount && sel.toString()) savedRange = sel.getRangeAt(0).cloneRange();
+      else savedRange = null;
+    });
+
+    /* Input: sync rich text to data model and canvas DOM directly — no full page rebuild */
     tc.addEventListener('input', function() {
       var val = this.innerHTML;
-      state.selectedElements.forEach(function(id) { updEl(id, { text: val, richText: val }); });
-      /* Debounced undo snapshot during text editing */
+      var plain = val.replace(/<[^>]*>/g, '');
+      state.selectedElements.forEach(function(id) {
+        var d = getEl(id);
+        if (d) { d.el.text = plain; d.el.richText = val; }
+        var dom = document.querySelector('.canvas-element[data-id="' + id + '"]');
+        if (dom) dom.innerHTML = val;
+      });
       clearTimeout(textEditTimer);
       textEditTimer = setTimeout(function() { saveSnapshot(); }, 800);
     });
@@ -1833,29 +1903,39 @@ function bindProps() {
   /* Returns true if inline format was applied to a selection, false if no selection */
   function applyInlineFormat(field, value) {
     var tc = $('prop-text-content');
-    if (!tc || document.activeElement !== tc) return false;
-    var sel = window.getSelection();
-    if (!sel.rangeCount || !sel.toString()) return false;
+    if (!tc || !savedRange) return false;
     tc.focus();
-    var range = sel.getRangeAt(0);
-    if (range.collapsed) return false;
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(savedRange);
     if (field === 'prop-ff') {
       document.execCommand('styleWithCSS', false, true);
       document.execCommand('fontName', false, value);
     } else if (field === 'prop-fs') {
       var wrap = document.createElement('span');
       wrap.style.fontSize = value + 'px';
-      wrapRangeContents(range, wrap);
+      wrapRangeContents(savedRange, wrap);
     } else if (field === 'prop-fw') {
       var wrap = document.createElement('span');
       wrap.style.fontWeight = value;
-      wrapRangeContents(range, wrap);
+      wrapRangeContents(savedRange, wrap);
     } else if (field === 'prop-tc') {
       document.execCommand('styleWithCSS', false, true);
       document.execCommand('foreColor', false, value);
     }
     tc.normalize();
-    tc.dispatchEvent(new Event('input'));
+    /* Save to data model and canvas directly — no full refresh */
+    var val = tc.innerHTML;
+    var plain = val.replace(/<[^>]*>/g, '');
+    state.selectedElements.forEach(function(id) {
+      var d = getEl(id);
+      if (d) { d.el.text = plain; d.el.richText = val; }
+      var dom = document.querySelector('.canvas-element[data-id="' + id + '"]');
+      if (dom) dom.innerHTML = val;
+    });
+    saveSnapshot();
+    /* Restore selection for continued editing */
+    savedRange = sel.getRangeAt(0).cloneRange();
     return true;
   }
 
@@ -2078,31 +2158,6 @@ function bindPanelEditor() {
     });
   }
 
-  // Insert image
-  var imgBtn = $('prop-ins-img-btn');
-  if (imgBtn) {
-    imgBtn.addEventListener('click', function() {
-      var f = $('inline-image-input');
-      if (f) f.click();
-    });
-  }
-
-  // Handle inline image upload
-  var inlineImgInput = $('inline-image-input');
-  if (inlineImgInput) {
-    inlineImgInput.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        var r = new FileReader();
-        r.onload = function(e) {
-          tc.focus();
-          document.execCommand('insertImage', false, e.target.result);
-        };
-        r.readAsDataURL(this.files[0]);
-      }
-      this.value = '';
-    });
-  }
-
   // Update button active state on selection change
   tc.addEventListener('keyup', updatePanelEditorButtons);
   tc.addEventListener('mouseup', updatePanelEditorButtons);
@@ -2306,8 +2361,101 @@ on(refresh);
 
 /* --------------- Toolbar Bindings --------------- */
 function bindToolbar() {
+  /* === Collapsible panel sections === */
+  document.querySelectorAll('.panel-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var section = this.closest('.panel-section');
+      if (section) {
+        section.classList.toggle('collapsed');
+        try {
+          var s = JSON.parse(localStorage.getItem('lp-collapsed-sections') || '{}');
+          var id = section.id || Array.from(section.parentNode.children).indexOf(section);
+          s[id] = section.classList.contains('collapsed');
+          localStorage.setItem('lp-collapsed-sections', JSON.stringify(s));
+        } catch(e) {}
+      }
+    });
+  });
+  /* Restore collapsed state on load */
+  try {
+    var saved = JSON.parse(localStorage.getItem('lp-collapsed-sections') || '{}');
+    document.querySelectorAll('.panel-section').forEach(function(sec) {
+      var id = sec.id || Array.from(sec.parentNode.children).indexOf(sec);
+      if (saved[id]) sec.classList.add('collapsed');
+    });
+  } catch(e) {}
+
   document.querySelectorAll('[data-tool]').forEach(function(b) {
     b.addEventListener('click', function() { setTool(this.dataset.tool); });
+  });
+
+  /* New project */
+  $('btn-new').addEventListener('click', function() {
+    var hasContent = state.pages.some(function(p) { return p.elements.length > 0; });
+    if (hasContent && !confirm('Start a new project? Any unsaved changes will be lost.')) return;
+    state.pages = [{ id: 'pg1', name: 'Page 1', elements: [], pw: PW, ph: PH }];
+    state.currentPage = 'pg1';
+    state.selectedElements = [];
+    state.undoStack = [JSON.stringify(state.pages)];
+    state.redoStack = [];
+    state.zoom = 1;
+    state.panX = 0;
+    state.panY = 0;
+    applyTransform();
+    refresh();
+    updatePageList();
+    showToast('New project created');
+  });
+
+  /* Save project as .json */
+  $('btn-save').addEventListener('click', function() {
+    var data = { pages: state.pages, currentPage: state.currentPage, zoom: state.zoom, panX: state.panX, panY: state.panY };
+    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    var a = document.createElement('a');
+    a.download = 'layout-project.json';
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showToast('Project saved');
+  });
+
+  /* Import project from .json */
+  $('btn-import').addEventListener('click', function() {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = function() {
+      var file = input.files[0];
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          var d = JSON.parse(e.target.result);
+          if (d.pages) state.pages = d.pages;
+          if (d.currentPage) state.currentPage = d.currentPage;
+          if (typeof d.zoom === 'number') state.zoom = d.zoom;
+          if (typeof d.panX === 'number') state.panX = d.panX;
+          if (typeof d.panY === 'number') state.panY = d.panY;
+          state.selectedElements = [];
+          state.undoStack = [JSON.stringify(state.pages)];
+          state.redoStack = [];
+          /* Migrate pages missing dimensions */
+          state.pages.forEach(function(pg) { if (!pg.pw) pg.pw = PW; if (!pg.ph) pg.ph = PH; });
+          /* Ensure valid currentPage */
+          if (!state.pages.some(function(p) { return p.id === state.currentPage; })) {
+            state.currentPage = state.pages[0] ? state.pages[0].id : 'pg1';
+          }
+          applyTransform();
+          refresh();
+          updatePageList();
+          showToast('Project imported');
+        } catch(err) {
+          showToast('Invalid project file: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
   });
 
   $('dup-btn').addEventListener('click', function() {
@@ -2742,6 +2890,8 @@ function onKey(e) {
     return;
   }
   if (ctrl && key === 'a') {
+    var ae2 = document.activeElement;
+    if (ae2 && (ae2.isContentEditable || ae2.tagName === 'INPUT' || ae2.tagName === 'TEXTAREA' || ae2.tagName === 'SELECT')) return;
     e.preventDefault();
     var p = cpage();
     if (p) {
