@@ -1,8 +1,119 @@
 # Layout — Page Layout Editor
 
-A full-page layout editor (InDesign-lite / Canva-lite) built entirely with HTML, CSS, and JavaScript.
+A full-page layout editor (InDesign-lite / Canva-lite) for building beautiful documents — programs, magazines, playbills, posters, and more. Built entirely with HTML, CSS, and JavaScript.
 
 **Part of the free open tools ecosystem.** Conforms to `/Users/bflbarlow/Websites/freeopentools/STYLE_GUIDE.md`. See `STYLE_GUIDE_RECONCILIATION.md` for the full migration record.
+
+---
+
+## 🎯 Objectives — Text Design Without Friction
+
+The core purpose of Layout is to let users combine text, images, and lines to build beautiful documents. **Right now, text editing is the weakest link.** The following objectives define the path to making every text box a "mini Google Docs" — a fully capable rich-text environment where everything possible with text is possible.
+
+### ═══════════════════════════════════════════
+### 1. Rich Text Editing Inside the Box
+### ═══════════════════════════════════════════
+
+Every text box must be a fully functional rich-text editor on double-click.
+
+- **Inline formatting** — Bold, italic, underline, strikethrough, superscript, subscript. All work with keyboard shortcuts (Ctrl+B/I/U) and toolbar buttons.
+- **Mixed formatting** — One paragraph bold, the next not. A single word highlighted in a different color. Multiple fonts and sizes within the same text box.
+- **Font family per selection** — Change the font of selected text, not the whole box.
+- **Font size per selection** — Change size of selected text, with a dropdown or up/down stepper.
+- **Text color per selection** — Color picker applies to highlighted text, not the whole element.
+- **Background/highlight color** — Add a highlight (marker) effect to selected text.
+- **Clear formatting** — One-click button to strip all inline formatting from selected text.
+
+### ═══════════════════════════════════════════
+### 2. Paragraph & Line Controls
+### ═══════════════════════════════════════════
+
+- **Line height (leading)** — Adjustable per text box or per paragraph. Crucial for magazine and playbill layouts.
+- **Letter spacing (tracking)** — Adjustable per selection or per text box. Essential for headlines, titles, and poster text.
+- **Paragraph spacing** — Margin before/after paragraphs. Independent of line height.
+- **Text indent** — First-line indent for paragraphs.
+- **Bulleted & numbered lists** — Toggle bullet and ordered lists inside the text box.
+- **Text alignment** — Left, center, right, justify. Works per paragraph.
+- **Vertical alignment** — Top, middle, bottom alignment of text within the text box bounds.
+- **Text direction** — Left-to-right and right-to-left support.
+- **Columns** — Divide a text box into multiple columns (2, 3, 4) for magazine-style layouts.
+
+### ═══════════════════════════════════════════
+### 3. Text Box & Overflow Management
+### ═══════════════════════════════════════════
+
+- **Auto-resize** — Option for the text box to grow vertically (or horizontally) to fit all content, so users never have to guess the right height.
+- **Overflow handling** — Options: clip, overflow (scrollable), or continue to a linked text box (see "Text Threading" below).
+- **Text threading (linked text boxes)** — Connect two or more text boxes so text flows from one to the next. This is a hallmark of professional layout tools (InDesign, Quark) and essential for magazines, playbills, and multi-page documents.
+- **Padding inside text box** — Inset spacing between the text and the box border. Independent of the box position.
+- **Min/max height** — Constrain how much a text box can grow when auto-resizing.
+
+### ═══════════════════════════════════════════
+### 4. Typography & Advanced Text Features
+### ═══════════════════════════════════════════
+
+- **Font weights** — Support for numeric weights beyond just 400/700 (300, 500, 600, 800, 900) so users can use variable fonts or font families with many weights.
+- **Font variants** — Small caps, all caps, ligatures, and other OpenType features.
+- **Drop caps** — The first letter of a paragraph rendered large and decorative (common in magazines).
+- **Text on path** — Text that follows a curved or angled line.
+- **Text rotation** — Rotate the entire text box freely (not just 90° increments).
+- **Hyphenation** — Automatic hyphenation for justified text.
+- **Tab stops** — Custom tab stops for precise columnar alignment within a text box.
+
+### ═══════════════════════════════════════════
+### 5. Inline Elements & Rich Content
+### ═══════════════════════════════════════════
+
+- **Inline images** — Insert small images (icons, logos, decorative elements) that flow with the text.
+- **Hyperlinks** — Add clickable links to selected text. Export preserves them.
+- **Special characters** — Easy insert of em-dash, en-dash, bullet, copyright, trademark, and other common typographic symbols.
+- **Find & replace** — Search within a text box or across all text boxes in the document.
+
+### ═══════════════════════════════════════════
+### 6. Text Styles & Presets
+### ═══════════════════════════════════════════
+
+- **Paragraph styles** — Save and apply named styles (Heading 1, Body, Caption, etc.) that bundle font, size, weight, leading, tracking, color, and alignment.
+- **Character styles** — Save and apply named inline styles (Bold Red, Small Caps, etc.).
+- **Quick style picker** — A floating palette or dropdown in the toolbar to apply styles with one click.
+- **Style inheritance** — Changes to a paragraph style propagate to all text using that style (like InDesign or Word).
+
+### ═══════════════════════════════════════════
+### 7. Properties Panel Integration
+### ═══════════════════════════════════════════
+
+The right-side Properties panel must expose all text controls in a clean, organized way:
+
+- **Text Content tab** — The textarea for editing raw text (updated live).
+- **Typography section** — Font family, size, weight, line height, letter spacing, text color, highlight color.
+- **Paragraph section** — Alignment, indent, paragraph spacing, bullets, numbering, columns.
+- **Text Box section** — Padding, vertical alignment, auto-resize toggle, overflow mode, min/max height.
+- **Styles section** — Paragraph style dropdown, character style dropdown, style save/delete buttons.
+- **Advanced section** — Text direction, hyphenation toggle, tab stops.
+
+### ═══════════════════════════════════════════
+### 8. Export Fidelity
+### ═══════════════════════════════════════════
+
+- **Rich text preserved in export** — The exported standalone HTML file must retain all inline formatting, fonts, colors, spacing, and styles.
+- **Linked text boxes reflow** — If text threading is used, the exported file must preserve the flow.
+- **Font embedding** — Option to inline web-safe fonts or embed Google Fonts links in the export.
+- **Print-ready output** — Consider adding PDF export via browser print or a library.
+
+### ═══════════════════════════════════════════
+### 9. Quality of Life
+### ═══════════════════════════════════════════
+
+- **Live preview** — All text changes render instantly on the canvas.
+- **Non-destructive editing** — Undo/redo works for every text operation (including inline formatting changes).
+- **Spell check** — Enable the browser's native spellcheck on editable text boxes.
+- **Keyboard shortcuts** — All standard text editing shortcuts work inside the text box (Ctrl+B/I/U, Ctrl+Shift+L/C/E/R for alignment, Ctrl+Z for undo, etc.).
+- **Right-click context menu** — Basic text editing options (cut, copy, paste, select all) work naturally.
+- **Drag-and-drop text** — Move selected text within or between text boxes.
+
+---
+
+**How to use this document:** Each objective above is a candidate for a GitHub issue or a development milestone. The items are ordered roughly by priority — start with Section 1 (rich text editing inside the box) as the foundation, then build up through paragraphs, overflow, typography, and styles.
 
 ---
 
@@ -56,14 +167,50 @@ That's it. No `npm install`, no `node server`, no setup.
 - **Align** — Left, center, and right alignment for selected elements
 - **Layer ordering** — Bring to front / send to back
 
+### Rich Text Editing
+- **Inline editing** — Double-click any text box to edit directly on the canvas
+- **Formatting** — Bold, italic, underline, strikethrough, superscript, subscript
+- **Inline images** — Insert images inside text via the toolbar
+- **Hyperlinks** — Insert/remove links (Ctrl+K) or toolbar buttons
+- **Special characters** — 60+ character picker popup (©, ®, ™, arrows, math, etc.)
+- **Find & replace** — Search all text elements (Ctrl+F) with replace & replace-all
+- **Lists & indents** — Bulleted/numbered lists, indent/outdent buttons
+
+### Typography & Layout
+- **Full font weights** — 100 through 900 (Thin to Black)
+- **Alignment** — Left, center, right, justify
+- **Line height & letter spacing** — Leading and tracking controls
+- **Paragraph spacing & indent** — Per-element paragraph spacing and text indent
+- **Columns** — Multi-column text with gap control
+- **Text direction** — LTR / RTL
+- **Drop caps** — First-letter styling toggle
+- **Hyphenation** — Auto-hyphenation toggle
+- **Rotation** — Per-element rotation (0–360°) with accurate hit-testing
+
+### Text Box Controls
+- **Padding** — Internal text box padding
+- **Vertical alignment** — Top, middle, bottom
+- **Auto-resize** — Height grows to fit content
+- **Overflow** — Clip / visible / scrollable
+- **Min/max height** — Constraints for auto-resize
+
+### Styles System
+- **Built-in styles** — Heading 1–3, Body
+- **Save / update / delete** — Reuse formatting as named styles
+- **Propagation** — Update a style and all elements using it update automatically
+
 ### Page Management
 - **Multi-page** — Add, remove, and switch between pages
 - **Page thumbnails** — Visual page list in the sidebar
 
 ### Properties
-- **Position & size** — x, y, width, height
+- **Position & size** — x, y, width, height, rotation (0–360°)
 - **Style** — Fill color, stroke color, stroke width, opacity, border radius
-- **Text** — Font family, font size, bold, italic, underline, text color, text content
+- **Style** — Reusable paragraph/character styles (save, update, delete, propagate)
+- **Text** — Font family, font size, bold, italic, underline, strikethrough, superscript, subscript, text color, text content
+- **Typography** — Line height (leading), letter spacing (tracking), alignment (left/center/right/justify), font weights (100–900)
+- **Text Box** — Padding, vertical alignment, auto-resize height, min/max height, overflow mode (clip / visible / scroll), columns, column gap, text direction (LTR/RTL), paragraph spacing, text indent, drop caps, hyphenation
+- **Formatting** — Inline images, hyperlinks, special characters, find & replace
 
 ### Undo / Redo
 - **Ctrl+Z** — Undo
@@ -87,6 +234,11 @@ That's it. No `npm install`, no `node server`, no setup.
 | `Ctrl+A` | Select all |
 | `Delete` | Delete selected |
 | `Escape` | Deselect |
+| `Ctrl+F` | Find & replace |
+| `Ctrl+K` | Insert hyperlink |
+| `Ctrl+Shift+L/E/R` | Align left/center/right |
+| `Ctrl+Shift+B` | Unordered list |
+| `Ctrl+Shift+7` | Numbered list |
 
 ## Architecture
 
@@ -156,7 +308,9 @@ Elements are plain serializable objects:
   visible: true,
   name: "Rectangle 1",
   // Text properties (if type === "text")
+  // Text properties (if type === "text")
   text: "Hello",
+  richText: "<p>Hello</p>",
   fontFamily: "system-ui, sans-serif",
   fontSize: 16,
   fontWeight: "400",
@@ -164,6 +318,14 @@ Elements are plain serializable objects:
   textDecoration: "none",
   textColor: "#000000",
   textAlign: "left",
+  lineHeight: 1.5,
+  letterSpacing: 0,
+  padding: 8,
+  verticalAlign: "top",
+  autoResize: false,
+  overflow: "hidden",
+  minH: 20,
+  maxH: 0,
   // Image properties (if type === "image")
   src: "data:image/png;base64,..."
 }
@@ -199,11 +361,9 @@ Pages are arrays of elements:
 
 ```
 layout/
-├── index.html      # The entire application (60KB, 1541 lines)
-└── REVIEW.md       # Technical review and development history
+├── index.html      # The entire application (2625 lines, single-file)
+└── README.md       # This file
 ```
-
-That's it. One file to distribute, one file to run.
 
 ## Browser Support
 
@@ -221,4 +381,3 @@ Tested in:
 ## License
 
 MIT
-# layout

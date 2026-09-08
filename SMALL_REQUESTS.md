@@ -1,0 +1,4 @@
+# Small Requests / Notes for Later
+
+- **Pan clamping**: Add back after solving the clamping + trackpad interaction bug. The naive `Math.max/min` in `applyTransform` interfered with two-finger macOS trackpad wheel events during leftward panning. Need a smarter approach — probably clamp only in `onPointerMove` (drag) but not in `onWheel`, or debounce the clamp.
+- **Paragraph styles**: Currently removed for simplicity. Re-add later: style picker dropdown, create/update/delete style from element, style propagation across linked elements. See TECH_REVIEW.md Phase 3 for the original design. Functions to restore: `createParagraphStyle`, `deleteParagraphStyle`, `updateParagraphStyle`, `propagateStyle`, `applyStyleDef`, `populateStyleDropdown`, `STYLE_PROPS` array, `paragraphStyleId` field, and the `state.styles` persistence.
