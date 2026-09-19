@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>About — Layout</title>
+<link rel="canonical" href="https://layout.freeopentools.com/about/">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2232%22%20height%3D%2232%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%232563EB%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%2218%22%20height%3D%2218%22%20rx%3D%222%22%2F%3E%3Cline%20x1%3D%223%22%20y1%3D%2210%22%20x2%3D%2221%22%20y2%3D%2210%22%2F%3E%3Cline%20x1%3D%2212%22%20y1%3D%2210%22%20x2%3D%2212%22%20y2%3D%2221%22%2F%3E%3C%2Fsvg%3E">
 <script>
 (function(){var s=localStorage.getItem('theme');var t=s||(window.matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.setAttribute('data-theme',t);})();
@@ -88,10 +89,10 @@ footer a:hover{text-decoration:underline}
 
 <div class="container" id="main-content">
   <header>
-    <a href="index.html" class="lp-brand" style="font-size:16px;font-weight:700;color:var(--color-accent);letter-spacing:-0.5px;text-decoration:none;display:inline-block;margin-bottom:24px">
+    <a href="../" class="lp-brand" style="font-size:16px;font-weight:700;color:var(--color-accent);letter-spacing:-0.5px;text-decoration:none;display:inline-block;margin-bottom:24px">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>layout
     </a>
-    <h1>Layout <span class="version">v0.2.0</span></h1>
+    <h1>Layout <span class="version">v0.3.0</span></h1>
     <p class="subtitle">A page layout editor built with HTML, CSS &amp; JavaScript. No dependencies, no build step. Design multi-page documents directly in the browser.</p>
   </header>
 
@@ -163,7 +164,43 @@ footer a:hover{text-decoration:underline}
     <h2>Version History</h2>
     <div class="changelog">
       <div class="changelog-entry">
-        <span class="ver">0.2.0</span><span class="date">current</span>
+        <span class="ver">0.3.0</span><span class="date">current</span>
+        <ul>
+          <li>Inline canvas text editing — double-click any text element to edit it in place, pixel-perfect WYSIWYG</li>
+          <li>Floating inline formatting toolbar — bold, italic, underline, strikethrough, super/subscript, alignment, lists, font family, size, weight and colour</li>
+          <li>Text/chrome separation — typography lives on an inner <code>.el-content</code> layer, so editing never disturbs box layout, resize handles or styling</li>
+          <li>Robust selection handling — formatting applies to partial or full selections and survives focus changes from toolbar controls</li>
+          <li>Auto-resize while typing — boxes grow/shrink to fit edited content</li>
+          <li>Fixed inline formatting lost on blur, reversed arrow-key caret movement, and toolbar dropdowns closing the moment they open</li>
+          <li>Fixed advanced inline font controls (family, size, weight, colour) doing nothing for real users; the controls now reflect the selected text's actual style</li>
+          <li>Canvas pan clamping — pan cannot push the canvas outside the viewport (mirrors diagram project)</li>
+          <li>Two-pass clamp on Ctrl/Cmd+wheel zoom — zoom anchor preserved, clamped before and after</li>
+          <li>Pinch-to-zoom clamp and rect fix — pinch anchor now uses correct viewport rect (canvas-scroll, not canvas-container)</li>
+          <li>Window resize handling — re-clamps pan when sidebar collapses/expands or window resizes</li>
+          <li>Arrow-key element bumping — arrow keys nudge selected elements 1px (10px with Shift), single undo per gesture</li>
+          <li>Clamp on all load/import/reset paths — new project, import, reset-view, and localStorage restore</li>
+          <li>Clamp on zoom buttons — zoom-in/out buttons trigger re-clamp after zoom change</li>
+          <li>Clamp on sidebar collapse and resize — panel collapse/expand re-clamps to new viewport width</li>
+          <li>Project &amp; page properties — page size presets (Letter / A4 / custom), orientation, margins, columns, gutter, bleed and slug</li>
+          <li>Document panel now hosts all project-wide settings and appears when nothing is selected</li>
+          <li>Six measurement units (px, in, cm, mm, pt, pc) on every dimension field — geometry stays pixel-accurate underneath, units are display-only</li>
+          <li>Page DPI setting for raster export and image-resolution warnings (never affects layout)</li>
+          <li>Non-printing guides — shaded margin bands with a dashed margin frame, plus column, bleed and slug guides</li>
+          <li>Unit-aware rulers and a configurable grid with an optional baseline overlay</li>
+          <li>Snapping to guides and grid, with a toolbar master switch (or press <code>S</code>) and hold-<code>Shift</code> momentary snapping</li>
+          <li>Grid spacing re-expressed as clean values when the document unit changes</li>
+          <li>Alignment panel — a 3&times;3 grid to align elements to the page, the margins, or the selection's bounding box</li>
+          <li>Images insert at their natural aspect ratio and can be locked to it, with a "Reset to original ratio" button</li>
+          <li>Physical page size, background colour and optional bleed with crop marks in PDF/print export</li>
+          <li>Raster PNG/JPEG export at the project DPI, with an image-resolution (PPI) warning</li>
+          <li>PDF/print output is now pixel-for-pixel identical to the canvas — export reuses the same element renderer, fixing text that wrapped differently on screen vs. PDF</li>
+          <li>Self-contained HTML/PDF export — no external font requests (removed the Google Fonts link)</li>
+          <li>Fixed stroked text frames losing their border and paragraph spacing being dropped in export</li>
+          <li>Toolbar scrolls horizontally instead of overflowing on narrow windows</li>
+        </ul>
+      </div>
+      <div class="changelog-entry">
+        <span class="ver">0.2.0</span><span class="date">previous</span>
         <ul>
           <li>Rich text editor with inline formatting (bold, italic, underline, strikethrough, superscript, subscript)</li>
           <li>Text box style controls — fill, stroke, opacity, radius, rotation (standalone Box panel)</li>
@@ -204,7 +241,7 @@ footer a:hover{text-decoration:underline}
   <footer>
     <p>Layout &mdash; a page layout editor</p>
     <div class="footer-links" style="margin-top:12px">
-      <a href="index.html">Open Editor</a>
+      <a href="../">Open Editor</a>
     </div>
   </footer>
 </div>

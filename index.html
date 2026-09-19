@@ -87,6 +87,22 @@
   --lp-bg-page:          #FFFFFF;
 }
 
+/* Inline editing toolbar */
+.inline-toolbar{position:fixed;z-index:10000;display:none;flex-direction:column;gap:3px;padding:6px;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-md);box-shadow:var(--shadow-lg);-webkit-user-select:none;user-select:none}
+.inline-toolbar-row{display:flex;gap:2px;align-items:center;flex-wrap:nowrap}
+.inline-btn{display:inline-flex;align-items:center;justify-content:center;min-width:28px;min-height:28px;padding:0 6px;border:1px solid transparent;border-radius:3px;background:transparent;color:var(--color-text);font-size:12px;cursor:pointer;line-height:1;transition:background .1s;font-family:inherit}
+.inline-btn:hover{background:var(--color-bg-subtle);border-color:var(--color-border)}
+.inline-btn:active,.inline-btn.active{background:var(--color-accent);color:#fff;border-color:var(--color-accent)}
+.inline-sep{display:inline-block;width:1px;height:18px;margin:0 3px;background:var(--color-border)}
+.inline-select,.inline-input{background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);padding:2px 4px;border-radius:3px;font-size:11px;min-height:28px;font-family:inherit}
+.inline-select:focus,.inline-input:focus{border-color:var(--color-accent);outline:none;box-shadow:0 0 0 2px rgba(37,99,235,.2)}
+
+/* Inner content node — the ONLY element that ever becomes editable.
+   Keeps rich-text content strictly separate from box chrome (handles, border). */
+.el-content{display:block;width:100%;box-sizing:border-box}
+.el-content[contenteditable]{outline:none;cursor:text;user-select:text;-webkit-user-select:text;-webkit-user-modify:read-write;-moz-user-modify:read-write;overflow-wrap:break-word;word-wrap:break-word;-webkit-text-size-adjust:none;text-size-adjust:none;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+.el-content[contenteditable] p,.el-content[contenteditable] div,.el-content[contenteditable] span{font:inherit;color:inherit}
+
 /* Focus-visible (STYLE_GUIDE §8.4) */
 :focus-visible {
   outline: 2px solid var(--color-accent);
@@ -132,7 +148,12 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 /* ==========================================================================
    Toolbar / <header>
    ========================================================================== */
-.toolbar{height:var(--lp-toolbar-h);background:var(--color-bg-subtle);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 var(--space-3);gap:var(--space-1);z-index:100;flex-shrink:0}
+/* The toolbar can exceed the viewport on ~1440px-wide screens. Scroll it rather
+   than letting the last buttons render past the right edge, where they are
+   invisible and unclickable. The scrollbar is hidden so the fixed 52px height
+   is preserved; trackpad / shift-wheel / Tab-focus still reach the buttons. */
+.toolbar{height:var(--lp-toolbar-h);background:var(--color-bg-subtle);border-bottom:1px solid var(--color-border);display:flex;align-items:center;padding:0 var(--space-3);gap:var(--space-1);z-index:100;flex-shrink:0;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none}
+.toolbar::-webkit-scrollbar{display:none}
 .toolbar-group{display:flex;align-items:center;gap:var(--space-1)}
 .toolbar-divider{width:1px;height:28px;background:var(--color-border);margin:0 var(--space-2)}
 
@@ -146,6 +167,9 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 }
 .tool-btn:hover{background:var(--color-border);color:var(--color-text)}
 .tool-btn.active{background:var(--color-accent);color:#FFFFFF}
+/* Momentary snapping: Shift held while the master switch is off. A dashed accent
+   outline reads as "temporarily on" without claiming the latched on-state. */
+.tool-btn.snap-temp:not(.active){outline:2px dashed var(--color-accent);outline-offset:-3px;color:var(--color-accent)}
 .tool-btn.primary{background:var(--color-accent);color:#FFFFFF;padding:var(--space-2) var(--space-4);width:auto;gap:var(--space-2);font-weight:500}
 .tool-btn.primary:hover{background:var(--color-accent-hover)}
 .tool-btn:disabled{color:var(--color-text-disabled);cursor:not-allowed;opacity:1}
@@ -265,6 +289,34 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
   transition: transform 0.2s;
 }
 
+/* Sidebar collapse button — inherit from global, override per-sidebar */
+#sidebar-left .sidebar-collapse-btn {
+  margin: var(--space-2) var(--space-2) var(--space-2) var(--space-2);
+}
+
+/* ==========================================================================
+   Collapsed state — sidebar-left
+   ========================================================================== */
+#sidebar-left.collapsed {
+  width: 40px !important;
+  min-width: 40px;
+}
+#sidebar-left.collapsed .sidebar-header {
+  justify-content: center;
+  border-bottom: none;
+  padding: var(--space-2);
+}
+#sidebar-left.collapsed .sidebar-header h3,
+#sidebar-left.collapsed .sidebar-add-btn,
+#sidebar-left.collapsed .page-list {
+  display: none !important;
+}
+#sidebar-left.collapsed .sidebar-collapse-btn {
+  margin: 0;
+  width: 28px;
+  height: 28px;
+}
+
 /* ==========================================================================
    Collapsed state — sidebar-right
    ========================================================================== */
@@ -315,6 +367,12 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .panel-toggle .chevron{width:12px;height:12px;color:var(--color-text-disabled);transition:transform .15s;flex-shrink:0}
 .panel-section.collapsed .panel-toggle .chevron{transform:rotate(-90deg)}
 .panel-section.collapsed .panel-body{display:none}
+/* Shape alignment: 3×3 anchor grid (Properties ▸ Alignment) */
+.align-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;margin-top:var(--space-1)}
+.align-btn{display:flex;align-items:center;justify-content:center;min-height:38px;padding:0;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text-muted);cursor:pointer;transition:background .1s,color .1s,border-color .1s}
+.align-btn:hover{background:var(--color-bg-subtle);color:var(--color-text)}
+.align-btn:active{background:var(--color-accent);border-color:var(--color-accent);color:#FFFFFF}
+.align-btn svg{width:16px;height:16px;display:block}
 .prop-row{display:flex;gap:var(--space-2);margin-bottom:var(--space-2);align-items:center}
 .prop-row label{display:flex;align-items:center;gap:var(--space-1);flex:1;font-size:var(--text-xs);color:var(--color-text-muted)}
 .prop-row label input,.prop-row label select,.prop-row label textarea{flex:1;background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-base);min-height:44px}
@@ -359,10 +417,21 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .ruler-mark{position:absolute;background:var(--color-text-disabled)}
 .canvas-page{width:var(--lp-pw);min-height:var(--lp-ph);background:var(--lp-bg-page);box-shadow:var(--shadow-md);position:relative;margin-left:24px;margin-top:24px;transform-origin:0 0}
 .page-content{position:relative;width:100%;height:100%;min-height:var(--lp-ph);z-index:1}
+/* Guides layer — non-printing overlays. z-index:0 keeps them above the grid but
+   BELOW .page-content (z-index:1, which establishes a stacking context holding
+   every element, resize handle, and the selection ghost). See PROJECT_PAGE_PROPS §7.2. */
+.guides-layer{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:visible}
+.guide-margin{position:absolute;box-sizing:border-box;border:1px dashed #E0457B;opacity:.9}
+.guide-margin-band{position:absolute;background:#E0457B;opacity:.06}
+.guide-column{position:absolute;top:0;bottom:0;width:0;border-left:1px dashed #38BDF8;opacity:.85}
+.guide-bleed{position:absolute;box-sizing:border-box;border:1px solid #16A34A;opacity:.7}
+.guide-slug{position:absolute;box-sizing:border-box;border:1px dotted #A855F7;opacity:.7}
 .grid-layer{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0}
 .canvas-element{position:absolute;cursor:move;border:1px solid transparent;transition:box-shadow .1s}
 .canvas-element:hover{border-color:var(--color-accent-soft)}
 .canvas-element.selected{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent)}
+.canvas-element[data-type="line"]{border:transparent !important;box-shadow:none !important}
+.canvas-element[data-type="line"].selected svg line{stroke:var(--color-accent) !important;stroke-width:2.5px}
 .resize-handle{position:absolute;width:10px;height:10px;background:var(--color-surface);border:1.5px solid var(--color-accent);border-radius:2px;z-index:10}
 .resize-handle.nw{top:-5px;left:-5px;cursor:nw-resize}
 .resize-handle.ne{top:-5px;right:-5px;cursor:ne-resize}
@@ -439,7 +508,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .lp-brand:hover {
   color: var(--color-accent-hover);
 }
-.lp-version{font-size:10px;font-weight:400;color:var(--color-text-disabled);margin-left:2px;align-self:flex-end;padding-bottom:2px;}
+.lp-version{font-size:10px;font-weight:400;color:var(--color-text-disabled);margin-left:auto;align-self:flex-end;padding-bottom:2px;}
 
 /* ==========================================================================
    Toast notification (STYLE_GUIDE §7.5)
@@ -675,6 +744,44 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 @media (max-width: 480px) {
   .toolbar-group .tool-btn { min-width: 36px; min-height: 36px; padding: var(--space-1); }
 }
+
+/* ==========================================================================
+   Multi-tab read-only mode
+   ========================================================================== */
+.readonly-banner{
+  flex-shrink:0;
+  background:var(--color-warning);
+  color:#FFFFFF;
+  text-align:center;
+  padding:6px var(--space-4);
+  font-size:13px;
+  font-weight:500;
+  letter-spacing:.01em;
+}
+body.read-only-mode .toolbar button:not(#theme-toggle):not(#zoom-in):not(#zoom-out),
+body.read-only-mode .toolbar input,
+body.read-only-mode .toolbar select{
+  opacity:.4;
+  pointer-events:none;
+}
+body.read-only-mode .toolbar{cursor:not-allowed}
+
+/* ==========================================================================
+   Save button auto-save indicator
+   ========================================================================== */
+.save-btn{position:relative;overflow:visible}
+.save-dot{
+  position:absolute;
+  bottom:-1px;
+  left:50%;
+  transform:translateX(-50%);
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--color-success);
+  border:1.5px solid var(--color-bg);
+  pointer-events:none;
+}
 </style>
 </head>
 <body>
@@ -693,7 +800,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
      ========================================================================= -->
 <header class="toolbar" id="toolbar">
   <!-- Brand / About link -->
-  <a class="lp-brand" id="lp-brand" href="about.html" aria-label="About Layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>layout<span class="lp-version">v0.2.0</span></a>
+  <a class="lp-brand" id="lp-brand" href="about/" aria-label="About Layout"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="12" y1="10" x2="12" y2="21"/></svg>layout</a>
 
   <div class="toolbar-divider"></div>
 
@@ -705,7 +812,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 
   <div class="toolbar-group">
     <button class="tool-btn" id="btn-new" title="New Project"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
-    <button class="tool-btn" id="btn-save" title="Save Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="tool-btn save-btn" id="btn-save" title="Save Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span class="save-dot" id="save-dot" style="display:none"></span></button>
     <button class="tool-btn" id="btn-import" title="Import Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></button>
   </div>
 
@@ -741,28 +848,68 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
     <button class="tool-btn" id="zoom-in" aria-label="Zoom in" title="Zoom In"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
     <button class="tool-btn" id="reset-view" aria-label="Reset view" title="Reset View"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 109 9M3 3v4h4M3 3l4 4"/><path d="M21 12a9 9 0 01-9 9"/><path d="M21 3v4h-4M21 3l-4 4"/></svg></button>
     <button class="tool-btn" id="grid-toggle" aria-label="Toggle grid" title="Toggle Grid"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg></button>
+    <button class="tool-btn active" id="snap-toggle" aria-label="Toggle snapping" aria-pressed="true" title="Toggle Snapping (S) — hold Shift to snap temporarily"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2" fill="currentColor"/><circle cx="20" cy="4" r="2" fill="currentColor"/><circle cx="4" cy="20" r="2" fill="currentColor"/><circle cx="20" cy="20" r="2" fill="currentColor"/><line x1="6" y1="4" x2="18" y2="4" stroke-dasharray="2 2"/><line x1="4" y1="6" x2="4" y2="18" stroke-dasharray="2 2"/></svg></button>
   </div>
 
   <div class="toolbar-divider"></div>
   <div class="toolbar-group">
     <button class="tool-btn primary" id="export-btn" aria-label="Export HTML" title="Export HTML"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> HTML</button>
     <button class="tool-btn" id="pdf-btn" aria-label="Export PDF" title="Export PDF"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
+    <button class="tool-btn" id="png-btn" aria-label="Export PNG" title="Export current page as PNG at the project DPI"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> PNG</button>
+    <button class="tool-btn" id="jpeg-btn" aria-label="Export JPEG" title="Export current page as JPEG at the project DPI"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> JPG</button>
   </div>
 </header>
+
+<!-- Read-only banner (shown when another tab is editing) -->
+<div id="readonly-banner" class="readonly-banner" style="display:none" role="alert">Read-only — another tab is editing</div>
 
 <!-- =========================================================================
      MAIN — Canvas and sidebars (STYLE_GUIDE §9.1)
      ========================================================================= -->
 <div class="main-layout" id="main-layout">
   <aside class="sidebar sidebar-left" id="sidebar-left">
-    <div class="sidebar-header"><h3>Pages</h3><button class="sidebar-add-btn" id="add-page-btn" aria-label="Add page" title="Add Page">+</button></div>
+    <div class="sidebar-header">
+      <button class="sidebar-collapse-btn" id="btn-collapse-left-sidebar" title="Collapse pages panel" aria-label="Collapse pages panel">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <h3>Pages</h3>
+      <button class="sidebar-add-btn" id="add-page-btn" aria-label="Add page" title="Add Page">+</button>
+    </div>
     <div class="page-list" id="page-list" role="list" aria-label="Page list"></div>
   </aside>
 
   <main class="canvas-area" id="canvas-area">
     <div class="canvas-scroll" id="canvas-scroll">
       <div class="canvas-container" id="canvas-container">
-        <div class="canvas-page" id="canvas-page"><div class="grid-layer" id="grid-layer"></div><div class="ruler-h" id="ruler-h"></div><div class="ruler-v" id="ruler-v"></div><div class="page-content" id="page-content"></div></div>
+        <div class="canvas-page" id="canvas-page"><div class="grid-layer" id="grid-layer"></div><div class="ruler-h" id="ruler-h"></div><div class="ruler-v" id="ruler-v"></div><div class="page-content" id="page-content"></div><div class="guides-layer" id="guides-layer" aria-hidden="true"></div></div>
+      </div>
+    </div>
+    <!-- Inline formatting toolbar (hidden by default, shown during inline canvas editing) -->
+    <div id="inline-toolbar" class="inline-toolbar" style="display:none">
+      <div class="inline-toolbar-row">
+        <button class="inline-btn" data-action="bold" title="Bold (Ctrl+B)"><b>B</b></button>
+        <button class="inline-btn" data-action="italic" title="Italic (Ctrl+I)"><i>I</i></button>
+        <button class="inline-btn" data-action="underline" title="Underline (Ctrl+U)"><u>U</u></button>
+        <button class="inline-btn" data-action="strikethrough" title="Strikethrough"><del>S</del></button>
+        <span class="inline-sep"></span>
+        <button class="inline-btn" data-action="superscript" title="Superscript">x<sup>2</sup></button>
+        <button class="inline-btn" data-action="subscript" title="Subscript">x<sub>2</sub></button>
+        <button class="inline-btn" data-action="clearFormat" title="Clear Formatting">T<sub>x</sub></button>
+        <span class="inline-sep"></span>
+        <button class="inline-btn" data-action="justifyLeft" title="Align Left"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="13" x2="19" y2="13"/><line x1="3" y1="17" x2="11" y2="17"/></svg></button>
+        <button class="inline-btn" data-action="justifyCenter" title="Align Center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="21" y2="5"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="5" y1="13" x2="19" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg></button>
+        <button class="inline-btn" data-action="justifyRight" title="Align Right"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="5" x2="21" y2="5"/><line x1="9" y1="9" x2="21" y2="9"/><line x1="5" y1="13" x2="21" y2="13"/><line x1="13" y1="17" x2="21" y2="17"/></svg></button>
+        <span class="inline-sep"></span>
+        <button class="inline-btn" data-action="insertUnorderedList" title="Bullet List">&#8226;&#8801;</button>
+        <button class="inline-btn" data-action="insertOrderedList" title="Numbered List">1&#8801;</button>
+      </div>
+      <div class="inline-toolbar-row">
+        <select class="inline-select" data-action="fontName" title="Font Family" style="flex:1;min-width:0"><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times New Roman</option><option value="Arial, sans-serif">Arial</option><option value="'Helvetica Neue', sans-serif">Helvetica Neue</option><option value="'Courier New', monospace">Courier New</option><option value="system-ui, sans-serif">System</option></select>
+        <input class="inline-input" type="number" data-action="fontSize" min="6" max="200" value="16" title="Font Size" style="width:52px">
+        <select class="inline-select" data-action="fontWeight" title="Font Weight" style="width:72px"><option value="100">Thin</option><option value="200">XLt</option><option value="300">Lt</option><option value="400">Reg</option><option value="500">Med</option><option value="600">SmB</option><option value="700">Bold</option><option value="800">XBd</option><option value="900">Blk</option></select>
+        <input class="inline-input" type="color" data-action="foreColor" value="#111113" title="Text Color" style="width:32px;height:28px;padding:1px;border-radius:4px;cursor:pointer">
+        <span class="inline-sep"></span>
+        <button class="inline-btn" data-action="done" title="Done (Esc)" style="background:var(--color-success);color:#fff;font-size:14px;min-width:32px">&#10003;</button>
       </div>
     </div>
   </main>
@@ -780,10 +927,29 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
     </div>
     <div class="tab-content">
       <div class="tab-panel active" id="properties-panel" role="tabpanel" aria-labelledby="properties-tab">
-        <div class="panel-section"><button class="panel-toggle"><h4>Position</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+        <div class="panel-section" id="prop-pos-section"><button class="panel-toggle"><h4>Position</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
 <div class="panel-body">
           <div class="prop-row"><label>X <input type="number" id="prop-x" value="0" aria-label="Position X"></label><label>Y <input type="number" id="prop-y" value="0" aria-label="Position Y"></label></div>
           <div class="prop-row"><label>W <input type="number" id="prop-w" value="100" aria-label="Width"></label><label>H <input type="number" id="prop-h" value="100" aria-label="Height"></label></div>
+        </div>
+        </div>
+        <div class="panel-section" id="prop-align-section" style="display:none">
+          <button class="panel-toggle"><h4>Alignment</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
+          <div class="prop-row"><label style="flex:1">Align to <select id="prop-align-target" aria-label="Alignment target" style="width:100%"><option value="page">Page</option><option value="margins">Margins</option><option value="selection">Selection</option></select></label></div>
+          <!-- 3×3 anchor grid: the faint square is the target box, the solid block is the element. -->
+          <div class="align-grid" id="prop-align-grid" role="group" aria-label="Align selection">
+            <button class="align-btn" data-align="tl" title="Align top left" aria-label="Align top left"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="3" y="3" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="tc" title="Align top center" aria-label="Align top center"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="8" y="3" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="tr" title="Align top right" aria-label="Align top right"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="13" y="3" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="ml" title="Align middle left" aria-label="Align middle left"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="3" y="8" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="mc" title="Align middle center" aria-label="Align middle center"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="8" y="8" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="mr" title="Align middle right" aria-label="Align middle right"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="13" y="8" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="bl" title="Align bottom left" aria-label="Align bottom left"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="3" y="13" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="bc" title="Align bottom center" aria-label="Align bottom center"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="8" y="13" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+            <button class="align-btn" data-align="br" title="Align bottom right" aria-label="Align bottom right"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="13" y="13" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
+          </div>
+        </div>
         </div>
         <div class="panel-section" id="prop-text-section" style="display:none">
           <button class="panel-toggle"><h4>Text</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
@@ -831,6 +997,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
           <div class="prop-row" style="display:none" id="prop-ar-extra"><label>Min <input type="number" id="prop-minh" value="0" min="0" max="2000" style="width:52px" aria-label="Min height"></label><label>Max <input type="number" id="prop-maxh" value="0" min="0" max="5000" style="width:52px" aria-label="Max height"></label></div>
           <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-dc" aria-label="Drop cap"> Drop Cap</label><label style="flex:1"><input type="checkbox" id="prop-hy" aria-label="Hyphenation"> Hyphenation</label></div>
         </div>
+        </div>
         <div class="panel-section" id="prop-box-section">
           <button class="panel-toggle"><h4>Box</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
 <div class="panel-body">
@@ -839,12 +1006,39 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
           <div class="prop-row"><label>Opacity <input type="number" id="prop-tb-opacity" value="100" min="0" max="100" aria-label="Box opacity" style="width:50px"></label><label>Radius <input type="number" id="prop-tb-radius" value="0" min="0" aria-label="Box radius" style="width:50px"></label></div>
           <div class="prop-row"><label>Rot <input type="number" id="prop-tb-rot" value="0" min="0" max="360" step="1" aria-label="Rotation (degrees)" style="width:60px">°</label></div>
         </div>
+        </div>
         <div class="panel-section" id="prop-doc-section" style="display:none"><button class="panel-toggle"><h4>Document</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
 <div class="panel-body">
-          <div class="prop-row"><label>W <input type="number" id="prop-doc-w" value="850" min="100" max="5000" aria-label="Page width"></label><label>H <input type="number" id="prop-doc-h" value="1100" min="100" max="5000" aria-label="Page height"></label><label>Ori <select id="prop-doc-ori" aria-label="Orientation" style="width:80px"><option value="">Custom</option><option value="letter-p">Letter P</option><option value="letter-l">Letter L</option><option value="a4-p">A4 P</option><option value="a4-l">A4 L</option></select></label></div>
+          <div class="prop-row"><label style="flex:1">Units <select id="prop-doc-units" aria-label="Display units"><option value="px">px</option><option value="in">in</option><option value="cm">cm</option><option value="mm">mm</option><option value="pt">pt</option><option value="pc">pc</option></select></label><label>DPI <input type="number" id="prop-doc-dpi" value="300" min="36" max="1200" style="width:64px" aria-label="Export DPI"></label></div>
+          <h5 class="rte-subhead">Page</h5>
+          <div class="prop-row"><label style="flex:1">Preset <select id="prop-doc-preset" aria-label="Page preset" style="width:100%"><option value="custom">Custom</option><option value="letter">Letter</option><option value="legal">Legal</option><option value="tabloid">Tabloid</option><option value="a3">A3</option><option value="a4">A4</option><option value="a5">A5</option><option value="a6">A6</option><option value="b5">B5</option><option value="dl">DL</option><option value="hd1080">1080p</option><option value="uhd4k">4K</option></select></label></div>
+          <div class="prop-row"><label>W <input type="number" id="prop-doc-w" value="850" min="1" max="20000" aria-label="Page width"></label><label>H <input type="number" id="prop-doc-h" value="1100" min="1" max="20000" aria-label="Page height"></label></div>
+          <div class="prop-row"><label style="flex:1">Orientation <select id="prop-doc-ori" aria-label="Orientation" style="width:100%"><option value="portrait">Portrait</option><option value="landscape">Landscape</option></select></label></div>
+          <h5 class="rte-subhead">Margins</h5>
+          <div class="prop-row"><label>T <input type="number" id="prop-doc-mt" value="48" min="0" aria-label="Top margin"></label><label>R <input type="number" id="prop-doc-mr" value="48" min="0" aria-label="Right margin"></label></div>
+          <div class="prop-row"><label>B <input type="number" id="prop-doc-mb" value="48" min="0" aria-label="Bottom margin"></label><label>L <input type="number" id="prop-doc-ml" value="48" min="0" aria-label="Left margin"></label></div>
+          <h5 class="rte-subhead">Columns</h5>
+          <div class="prop-row"><label>Cols <input type="number" id="prop-doc-cols" value="1" min="1" max="12" style="width:52px" aria-label="Column count"></label><label>Gutter <input type="number" id="prop-doc-gutter" value="24" min="0" style="width:60px" aria-label="Column gutter"></label></div>
+          <h5 class="rte-subhead">Bleed &amp; Slug</h5>
+          <div class="prop-row"><label>Bleed <input type="number" id="prop-doc-bleed" value="0" min="0" style="width:60px" aria-label="Bleed"></label><label>Slug <input type="number" id="prop-doc-slug" value="0" min="0" style="width:60px" aria-label="Slug"></label></div>
+          <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-doc-exportbleed"> Export with bleed (expanded page + crop marks)</label></div>
+          <h5 class="rte-subhead">Grid</h5>
+          <div class="prop-row"><label>Spacing <input type="number" id="prop-doc-grid" value="10" min="0" style="width:60px" aria-label="Grid spacing"></label><label>Subdiv <input type="number" id="prop-doc-gridsub" value="5" min="1" max="50" style="width:52px" aria-label="Grid subdivisions"></label></div>
+          <div class="prop-row"><label>Baseline <input type="number" id="prop-doc-baseline" value="0" min="0" style="width:60px" aria-label="Baseline grid"></label><label style="flex:1"><input type="checkbox" id="prop-doc-showbaseline"> Show</label></div>
+          <h5 class="rte-subhead">Guides</h5>
+          <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-doc-g-margins" checked> Margins</label><label style="flex:1"><input type="checkbox" id="prop-doc-g-cols" checked> Columns</label></div>
+          <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-doc-g-bleed"> Bleed</label><label style="flex:1"><input type="checkbox" id="prop-doc-g-snap" checked> Snap</label></div>
+          <div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-doc-showguides" checked> Show page guides</label></div>
+          <div class="prop-row"><button class="small-btn" id="prop-doc-apply-all" style="flex:1">Apply size to all pages</button></div>
+        </div>
         </div>
         <div class="panel-section" id="prop-image-section" style="display:none"><button class="panel-toggle"><h4>Image</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
-<div class="panel-body"><button class="small-btn" id="prop-image-btn">Change Image</button><input type="file" id="image-file-input" accept="image/*" style="display:none"></div>
+<div class="panel-body"><button class="small-btn" id="prop-image-btn">Change Image</button><input type="file" id="image-file-input" accept="image/*" style="display:none"><div class="prop-row"><label style="flex:1"><input type="checkbox" id="prop-image-lockaspect" checked> Preserve aspect ratio</label></div><div class="prop-row"><button class="small-btn" id="prop-image-reset-ratio" style="flex:1" title="Resize the element box back to the source image's aspect ratio">Reset to original ratio</button></div><div id="prop-image-ppi" style="display:none;margin-top:6px;font-size:11px;line-height:1.35"></div></div>
+        </div>
+        <div class="panel-section" id="prop-line-section" style="display:none"><button class="panel-toggle"><h4>Line</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
+<div class="panel-body">
+          <div class="prop-row"><label>X2 <input type="number" id="prop-x2" value="0" aria-label="Endpoint X"></label><label>Y2 <input type="number" id="prop-y2" value="0" aria-label="Endpoint Y"></label></div>
+        </div>
         </div>
         <input type="hidden" id="prop-fill" value="#FFFFFF">
         <input type="hidden" id="prop-fillOpacity" value="100">
@@ -856,11 +1050,6 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
         <input type="hidden" id="prop-rot" value="0">
 
       </div>
-</div>
-</div>
-</div>
-</div>
-</div>
       <div class="tab-panel" id="layers-panel" role="tabpanel" aria-labelledby="layers-tab"><div class="layer-list" id="layer-list" role="list" aria-label="Element layers"></div></div>
     </div>
   </aside>
@@ -873,6 +1062,7 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
   <span id="status-tool">Select Tool</span>
   <span id="status-pos">0, 0</span>
   <span id="status-page">Page 1 of 1</span>
+  <span class="lp-version">v0.3.0</span>
 </div>
 
 <!-- =========================================================================
@@ -926,6 +1116,251 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 var PW = 850, PH = 1100, GRID = 10, MAX_UNDO = 50, SAVE_DELAY = 1500, SK = 'layout-editor-data';
 var $ = function(id) { return document.getElementById(id); };
 var timer = null;
+
+/* ================================================================
+   Phase 0 foundations: units, page presets, project model, migration
+   Internal geometry is always canonical CSS px (1in = 96px). Physical
+   units are a display/IO concern only. See documents/PROJECT_PAGE_PROPS.md.
+   ================================================================ */
+var PX_PER_IN = 96;
+var UNITS = {
+  px: { label: 'px', perPx: 1 },
+  in: { label: 'in', perPx: 1 / PX_PER_IN },
+  cm: { label: 'cm', perPx: 2.54 / PX_PER_IN },
+  mm: { label: 'mm', perPx: 25.4 / PX_PER_IN },
+  pt: { label: 'pt', perPx: 72 / PX_PER_IN },
+  pc: { label: 'pc', perPx: (72 / PX_PER_IN) / 12 }
+};
+var UNIT_PRECISION = { px: 0, in: 3, cm: 2, mm: 1, pt: 1, pc: 2 };
+
+/* units-per-px -> px */
+function toPx(value, unit) {
+  var u = UNITS[unit] || UNITS.px;
+  return value / u.perPx;
+}
+/* px -> units-per-px */
+function fromPx(px, unit) {
+  var u = UNITS[unit] || UNITS.px;
+  return px * u.perPx;
+}
+function fmtUnit(px, unit) {
+  var u = unit || (state.project && state.project.units) || 'px';
+  var v = fromPx(px, u);
+  var p = UNIT_PRECISION[u] || 0;
+  return (p ? v.toFixed(p) : String(Math.round(v))) + ' ' + u;
+}
+/* Number-only formatting for <input type=number> (no suffix; trailing zeros trimmed). */
+var INPUT_PRECISION = { px: 2, in: 3, cm: 2, mm: 1, pt: 1, pc: 2 };
+function fmtNum(px, unit) {
+  var u = unit || units();
+  var v = fromPx(px, u);
+  var p = INPUT_PRECISION[u] != null ? INPUT_PRECISION[u] : 2;
+  var s = v.toFixed(p);
+  if (s.indexOf('.') >= 0) s = s.replace(/0+$/, '').replace(/\.$/, '');
+  return s;
+}
+function parseUnit(str, unit) {
+  var n = parseFloat(String(str).replace(/[^0-9.\-]/g, ''));
+  if (isNaN(n)) return 0;
+  return toPx(n, unit || (state.project && state.project.units) || 'px');
+}
+
+/* --------------- Unit-aware element inputs (Phase 2) --------------- */
+/* Write a px value into a unit-aware numeric input; skips the focused field so
+   typing is never clobbered by a re-render. */
+function setLenInput(id, px) {
+  var inp = $(id);
+  if (!inp || inp === document.activeElement) return;
+  inp.value = fmtNum(px, units());
+}
+/* Parse a unit-aware numeric input back to px (float). Empty / lone sign falls
+   back to dflt, so clearing a field does not snap it to 0. */
+function parseLenInput(value, dflt) {
+  var raw = String(value).trim();
+  if (raw === '' || raw === '-' || raw === '.' || raw === '-.') return dflt;
+  var n = parseFloat(raw);
+  if (isNaN(n)) return dflt;
+  return toPx(n, units());
+}
+
+/* Page presets — canonical px at 96 px/in. */
+var PAGE_PRESETS = {
+  'letter':  { label: 'Letter',  w: 816,  h: 1056 },
+  'legal':   { label: 'Legal',   w: 816,  h: 1344 },
+  'tabloid': { label: 'Tabloid', w: 1056, h: 1632 },
+  'a3':      { label: 'A3',      w: 1122.52, h: 1587.40 },
+  'a4':      { label: 'A4',      w: 793.70,  h: 1122.52 },
+  'a5':      { label: 'A5',      w: 559.37,  h: 793.70 },
+  'a6':      { label: 'A6',      w: 396.85,  h: 559.37 },
+  'b5':      { label: 'B5',      w: 665.20,  h: 944.88 },
+  'dl':      { label: 'DL',      w: 415.75,  h: 831.50 },
+  'hd1080':  { label: '1080p',   w: 1920,    h: 1080 },
+  'uhd4k':   { label: '4K',      w: 3840,    h: 2160 }
+};
+
+/* Project (document) defaults — one per file. */
+var PROJECT_DEFAULTS = {
+  schema: 2,
+  name: 'Untitled',
+  units: 'px',
+  dpi: 300,
+  page: {
+    preset: 'custom',
+    pw: 850,
+    ph: 1100,
+    orientation: 'portrait',
+    margins: { top: 48, right: 48, bottom: 48, left: 48 },
+    columns: 1,
+    gutter: 24,
+    bleed: 0,
+    slug: 0
+  },
+  grid: {
+    spacing: 10,
+    subdivisions: 5,
+    baseline: 0,
+    showBaseline: false
+  },
+  guides: {
+    showMargins: true,
+    showColumns: true,
+    showBleed: false,
+    snapToGuides: true
+  },
+  export: {
+    includeBleed: false
+  },
+  meta: {
+    title: '',
+    author: '',
+    description: '',
+    created: null,
+    modified: null
+  }
+};
+
+function mkProject() { return JSON.parse(JSON.stringify(PROJECT_DEFAULTS)); }
+
+function proj() { return state.project; }
+function units() { return state.project ? state.project.units : 'px'; }
+
+/* Mark a project-level (non-page) change dirty so autosave persists it.
+   Page-level changes use saveSnapshot(), which also sets state.dirty. */
+function markProjectDirty() { state.dirty = true; }
+
+/* Content box after margins (px). */
+function contentRect(p) {
+  var m = (p && p.margins) || { top: 0, right: 0, bottom: 0, left: 0 };
+  var W = (p && p.pw) || PW, H = (p && p.ph) || PH;
+  return {
+    x: m.left,
+    y: m.top,
+    w: Math.max(0, W - m.left - m.right),
+    h: Math.max(0, H - m.top - m.bottom)
+  };
+}
+
+/* Column guide rectangles within the content box. */
+function columnRects(p) {
+  var c = contentRect(p);
+  var n = Math.max(1, (p && p.columns) || 1);
+  var g = (p && p.gutter) || 0;
+  var colW = (c.w - g * (n - 1)) / n;
+  var out = [];
+  for (var i = 0; i < n; i++) out.push({ x: c.x + i * (colW + g), w: colW });
+  return out;
+}
+
+/* Tiny ES5 shallow-merge used by the migration below. */
+function shallowMerge(base, over) {
+  var out = {}, k;
+  for (k in base) if (base.hasOwnProperty(k)) out[k] = base[k];
+  for (k in over) if (over.hasOwnProperty(k) && over[k] !== undefined) out[k] = over[k];
+  return out;
+}
+
+/* Single migration entry point for every load path (load/import/reload/init).
+   Preserves existing page pw/ph EXACTLY; never snaps old docs to a preset. */
+function normalizeProject(d) {
+  if (!d || !Array.isArray(d.pages)) return null;
+
+  /* --- project --- */
+  var pr = d.project && typeof d.project === 'object' ? d.project : {};
+  var base = mkProject();
+  pr.schema = 2;
+  pr.name = pr.name || base.name;
+  pr.units = UNITS[pr.units] ? pr.units : 'px';
+  pr.dpi = pr.dpi > 0 ? pr.dpi : 300;
+  pr.page = shallowMerge(base.page, pr.page || {});
+  pr.page.margins = shallowMerge(base.page.margins, (pr.page && pr.page.margins) || {});
+  pr.grid = shallowMerge(base.grid, pr.grid || {});
+  pr.grid.spacing = parseFloat(pr.grid.spacing) > 0 ? parseFloat(pr.grid.spacing) : base.grid.spacing;
+  pr.grid.subdivisions = parseInt(pr.grid.subdivisions, 10) > 0 ? Math.min(50, parseInt(pr.grid.subdivisions, 10)) : base.grid.subdivisions;
+  pr.grid.baseline = parseFloat(pr.grid.baseline) > 0 ? parseFloat(pr.grid.baseline) : 0;
+  pr.guides = shallowMerge(base.guides, pr.guides || {});
+  pr.export = shallowMerge(base.export, pr.export || {});
+  pr.export.includeBleed = !!pr.export.includeBleed;
+  pr.meta = shallowMerge(base.meta, pr.meta || {});
+  d.project = pr;
+
+  /* --- pages (preserve existing pw/ph exactly; mark custom) --- */
+  d.pages.forEach(function(pg) {
+    if (pg.pw == null) pg.pw = PW;
+    if (pg.ph == null) pg.ph = PH;
+    if (!pg.preset) pg.preset = 'custom';
+    if (pg.orientation == null) pg.orientation = (pg.pw > pg.ph) ? 'landscape' : 'portrait';
+    if (!pg.margins) pg.margins = JSON.parse(JSON.stringify(pr.page.margins));
+    if (pg.columns == null) pg.columns = 1;
+    if (pg.gutter == null) pg.gutter = 24;
+    if (pg.bleed == null) pg.bleed = 0;
+    if (pg.slug == null) pg.slug = 0;
+    if (pg.background == null) pg.background = '#FFFFFF';
+    if (pg.showGuides == null) pg.showGuides = true;
+    /* Documents saved before the Image panel's aspect lock existed: default
+       images to locked (matches mkEl()'s default for newly inserted images). */
+    if (Array.isArray(pg.elements)) {
+      pg.elements.forEach(function(el) {
+        if (el && el.type === 'image' && el.lockAspect == null) el.lockAspect = true;
+      });
+    }
+  });
+
+  d.v = 2;
+  return d;
+}
+
+/* --------------- Canvas clamp helpers --------------- */
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+var CONFIG = {
+  panMargin: 100,
+  zoomStep: 0.1,
+  arrowStep: 1,
+  arrowStepBig: 10
+};
+
+var ARROW_DELTA = {
+  ArrowUp:    { dx: 0,  dy: -1 },
+  ArrowDown:  { dx: 0,  dy: 1  },
+  ArrowLeft:  { dx: -1, dy: 0  },
+  ArrowRight: { dx: 1,  dy: 0  }
+};
+var _arrowMoveActive = false;
+
+function clampPan() {
+  var r = $('canvas-scroll').getBoundingClientRect();
+  var p = cpage();
+  var cw = (p ? p.pw : PW) * state.zoom;
+  var ch = (p ? p.ph : PH) * state.zoom;
+  var m = CONFIG.panMargin;
+  state.panX = clamp(state.panX, m - cw, r.width - m);
+  state.panY = clamp(state.panY, m - ch, r.height - m);
+}
+
+function reClampPan() {
+  clampPan();
+  applyTransform();
+}
 
 /* --------------- Toast system (STYLE_GUIDE §7.5) --------------- */
 function showToast(message, type) {
@@ -992,6 +1427,7 @@ function confirmDialog(message, confirmLabel, callback) {
 
 /* --------------- State --------------- */
 var state = {
+  project: null,
   pages: [],
   currentPageIndex: 0,
   zoom: 1,
@@ -1008,7 +1444,15 @@ var state = {
   panStart: null,
   pointers: {},
   pinchStart: null,
-  showGrid: true
+  showGrid: true,
+  snapEnabled: true,
+  snapTemp: false,
+  alignTarget: 'page',
+  editingElementId: null,
+  readOnly: false,
+  autoSaveFileHandle: null,
+  channel: null,
+  tabId: ''
 };
 
 var subs = [];
@@ -1025,8 +1469,123 @@ function gid() {
   return 'e' + Date.now().toString(36) + Math.random().toString(36).substr(2, 6);
 }
 
-function snap(v) {
-  return Math.round(v / GRID) * GRID;
+/* --------------- Grid / snapping (project-configurable; GRID = fallback) --------------- */
+function gridSpacing() {
+  var s = state.project && state.project.grid ? parseFloat(state.project.grid.spacing) : GRID;
+  if (!(s > 0)) s = GRID;
+  return Math.max(1, s);
+}
+function gridSubdivisions() {
+  var n = state.project && state.project.grid ? parseInt(state.project.grid.subdivisions, 10) : 1;
+  if (!(n > 0)) n = 1;
+  return Math.max(1, Math.min(50, n));
+}
+function baselineSpacing() {
+  var b = state.project && state.project.grid ? parseFloat(state.project.grid.baseline) : 0;
+  return b > 0 ? b : 0;
+}
+
+/* --------------- Unit-aware grid steps (§29) ---------------
+   Grid spacing is stored in canonical px, but when the document unit changes we
+   re-express it as a clean value *in the new unit* so the grid overlay — and the
+   ruler minor ticks, which follow grid spacing — land on the ruler's unit
+   graduations (10 px -> 1/8 in -> 2.5 mm). `subdivisions` is left alone, so major
+   lines remain spacing x subdivisions exactly as before. */
+var GRID_UNIT_LADDER = {
+  px: [1, 2, 5, 10, 20, 25, 50, 100, 200, 500],
+  in: [1 / 64, 1 / 32, 1 / 16, 1 / 8, 1 / 4, 1 / 2, 1, 2, 4],
+  cm: [0.1, 0.2, 0.25, 0.5, 1, 2, 5, 10],
+  mm: [0.5, 1, 2, 2.5, 5, 10, 20, 50],
+  pt: [0.5, 1, 2, 3, 4, 6, 12, 24, 36, 72],
+  pc: [0.125, 0.25, 0.5, 1, 2, 6, 12]
+};
+
+/* Snap a canonical-px length to the nearest clean value in `unit`. 0 stays 0
+   (a zero baseline means "no baseline grid", not "snap me to a small value"). */
+function snapLenToUnit(px, unit) {
+  if (!(px > 0)) return 0;
+  var ladder = GRID_UNIT_LADDER[unit] || GRID_UNIT_LADDER.px;
+  var v = fromPx(px, unit);
+  var best = ladder[0], bestD = Infinity;
+  for (var i = 0; i < ladder.length; i++) {
+    var d = Math.abs(ladder[i] - v);
+    if (d < bestD) { bestD = d; best = ladder[i]; }
+  }
+  return toPx(best, unit);
+}
+
+/* 2-decimal rounding: metric grid steps are irrational in px (2.5 mm = 9.4488 px),
+   so keep accumulated coordinates short instead of leaking float tails. */
+function r2(n) { return Math.round(n * 100) / 100; }
+
+/* Nearest target within `tol`, or null when none is close enough. */
+function nearestTarget(v, targets, tol) {
+  var best = null, bestD = tol;
+  for (var i = 0; i < targets.length; i++) {
+    var d = Math.abs(v - targets[i]);
+    if (d < bestD) { bestD = d; best = targets[i]; }
+  }
+  return best;
+}
+
+/* Candidate guide positions for one axis: content-box edges + column edges.
+   Deliberately excludes 0 / the trim edge (see doc §8). */
+function guideTargets(p, axis) {
+  var t = [];
+  if (!p) return t;
+  var c = contentRect(p);
+  if (axis === 'x') { t.push(c.x, c.x + c.w); }
+  else { t.push(c.y, c.y + c.h); }
+  columnRects(p).forEach(function(col) {
+    if (axis === 'x') t.push(col.x, col.x + col.w);
+  });
+  return t;
+}
+
+/* Snap to the grid; prefer a nearby guide when project.guides.snapToGuides is on.
+   `axis` is 'x' | 'y'; omit it for a pure grid snap (e.g. width/height).
+   #snap-toggle is a master switch: with it off nothing snaps and the value is
+   only rounded to a whole CSS px, so dragging is free. */
+var GUIDE_SNAP_TOL = 6;
+function snap(v, axis) {
+  if (!snapActive()) return Math.round(v);
+  var gs = gridSpacing();
+  var gridV = r2(Math.round(v / gs) * gs);
+  if (!axis || !state.project || !state.project.guides || !state.project.guides.snapToGuides) return gridV;
+  var p = cpage();
+  if (!p) return gridV;
+  var t = nearestTarget(v, guideTargets(p, axis), GUIDE_SNAP_TOL);
+  return t != null ? t : gridV;
+}
+
+/* Master snapping switch (#snap-toggle). A per-browser view preference like the
+   grid toggle, not document data — so it is not saved with the project, not
+   pushed onto the undo stack, and stays usable in read-only mode. */
+function setSnapEnabled(on, quiet) {
+  state.snapEnabled = !!on;
+  var b = $('snap-toggle');
+  if (b) {
+    b.classList.toggle('active', state.snapEnabled);
+    b.setAttribute('aria-pressed', state.snapEnabled ? 'true' : 'false');
+  }
+  localStorage.setItem('lp-snap', state.snapEnabled ? '1' : '0');
+  if (!quiet) showToast('Snapping ' + (state.snapEnabled ? 'on' : 'off'));
+}
+
+/* Momentary snapping — hold Shift to snap while the master switch is off.
+   `snapTemp` is transient view state, exactly like `snapEnabled`: never saved
+   with the project, never pushed onto the undo stack, and usable in read-only
+   mode. It is cleared on keyup, window blur and tab hide so it can never get
+   stuck on when the keyup is delivered elsewhere. */
+function snapActive() {
+  return !!(state.snapEnabled || state.snapTemp);
+}
+function setSnapTemp(on) {
+  on = !!on;
+  if (state.snapTemp === on) return;
+  state.snapTemp = on;
+  var b = $('snap-toggle');
+  if (b) b.classList.toggle('snap-temp', on);
 }
 
 /* --------------- Coordinate helpers (zoom/pan aware) --------------- */
@@ -1050,6 +1609,11 @@ function applyTransform() {
   var t = 'translate(' + state.panX + 'px, ' + state.panY + 'px) scale(' + state.zoom + ')';
   pc.style.transform = t;
   $('zoom-label').textContent = Math.round(state.zoom * 100) + '%';
+  /* Reposition inline toolbar if editing */
+  if (state.editingElementId) {
+    var dom = getActiveEditable();
+    if (dom) showInlineToolbar(dom);
+  }
 }
 
 /* --------------- Grid --------------- */
@@ -1058,16 +1622,60 @@ function renderGrid() {
   if (!g) return;
   var p = cpage();
   var cw = p ? (p.pw || PW) : PW, ch = p ? (p.ph || PH) : PH;
-  var cc = '#FFFFFF';
-  if (document.documentElement.getAttribute('data-theme') === 'dark') cc = '#1C1C20';
+  var sp = gridSpacing();
+  var sub = gridSubdivisions();
   var gridLines = '';
-  for (var x = 0; x <= cw; x += GRID) {
-    gridLines += '<path d="M' + x + ' 0 L' + x + ' ' + ch + '" stroke="' + (x % 50 === 0 ? '#D0D0D4' : '#E8E8EC') + '" stroke-width="1"/>';
+  var x, y, i;
+  for (x = 0, i = 0; x <= cw; x += sp, i++) {
+    gridLines += '<path d="M' + r2(x) + ' 0 L' + r2(x) + ' ' + ch + '" stroke="' + (i % sub === 0 ? '#D0D0D4' : '#E8E8EC') + '" stroke-width="1"/>';
   }
-  for (var y = 0; y <= ch; y += GRID) {
-    gridLines += '<path d="M0 ' + y + ' L' + cw + ' ' + y + '" stroke="' + (y % 50 === 0 ? '#D0D0D4' : '#E8E8EC') + '" stroke-width="1"/>';
+  for (y = 0, i = 0; y <= ch; y += sp, i++) {
+    gridLines += '<path d="M0 ' + r2(y) + ' L' + cw + ' ' + r2(y) + '" stroke="' + (i % sub === 0 ? '#D0D0D4' : '#E8E8EC') + '" stroke-width="1"/>';
+  }
+  /* Baseline grid: overlay only (text snapping deferred — see §8). */
+  var bl = baselineSpacing();
+  if (bl > 0 && state.project && state.project.grid && state.project.grid.showBaseline) {
+    for (y = 0; y <= ch; y += bl) {
+      gridLines += '<path d="M0 ' + r2(y) + ' L' + cw + ' ' + r2(y) + '" stroke="#B9A6E0" stroke-width="1" stroke-dasharray="2,2"/>';
+    }
   }
   g.innerHTML = '<svg width="' + cw + '" height="' + ch + '" style="display:block">' + gridLines + '</svg>';
+}
+
+/* --------------- Guides (non-printing; never read by exportHTML) --------------- */
+function renderGuides(preview) {
+  var layer = $('guides-layer');
+  if (!layer) return;
+  layer.innerHTML = '';
+  var p = preview || cpage();
+  if (!p || !state.project || p.showGuides === false) return;
+  var g = state.project.guides || {};
+  var W = p.pw || PW, H = p.ph || PH;
+  var html = '';
+  if (g.showBleed && p.bleed > 0) {
+    var b = p.bleed;
+    html += '<div class="guide-bleed" style="left:' + (-b) + 'px;top:' + (-b) + 'px;width:' + (W + 2 * b) + 'px;height:' + (H + 2 * b) + 'px"></div>';
+  }
+  if (g.showMargins) {
+    var c = contentRect(p);
+    /* Shaded margin bands make the non-content area legible at a glance,
+       not just the thin inset rectangle. */
+    if (c.y > 0) html += '<div class="guide-margin-band" style="left:0;top:0;width:' + W + 'px;height:' + c.y + 'px"></div>';
+    if (c.y + c.h < H) html += '<div class="guide-margin-band" style="left:0;top:' + (c.y + c.h) + 'px;width:' + W + 'px;height:' + (H - c.y - c.h) + 'px"></div>';
+    if (c.x > 0) html += '<div class="guide-margin-band" style="left:0;top:' + c.y + 'px;width:' + c.x + 'px;height:' + c.h + 'px"></div>';
+    if (c.x + c.w < W) html += '<div class="guide-margin-band" style="left:' + (c.x + c.w) + 'px;top:' + c.y + 'px;width:' + (W - c.x - c.w) + 'px;height:' + c.h + 'px"></div>';
+    /* Skip the inset rectangle when there are no margins (it would sit on the page edge). */
+    if (c.x > 0 || c.y > 0 || c.w < W || c.h < H) {
+      html += '<div class="guide-margin" style="left:' + c.x + 'px;top:' + c.y + 'px;width:' + c.w + 'px;height:' + c.h + 'px"></div>';
+    }
+  }
+  if (g.showColumns && p.columns > 1) {
+    columnRects(p).forEach(function(col, i) {
+      if (i === 0) return; /* content-box left edge already drawn by the margin guide */
+      html += '<div class="guide-column" style="left:' + col.x + 'px"></div>';
+    });
+  }
+  layer.innerHTML = html;
 }
 
 function cpage() {
@@ -1083,12 +1691,24 @@ function saveSnapshot() {
 
 /* --------------- Pages --------------- */
 function mkPage(idx) {
+  var pd = state.project ? state.project.page : PROJECT_DEFAULTS.page;
   return {
     id: 'p' + Date.now().toString(36) + '_' + idx,
     elements: [],
     name: 'Page ' + (idx + 1),
-    pw: PW,
-    ph: PH
+    /* Size (canonical px) — overrides project defaults */
+    pw: pd.pw,
+    ph: pd.ph,
+    orientation: pd.orientation,
+    preset: pd.preset,
+    /* Guides (non-printing) */
+    margins: JSON.parse(JSON.stringify(pd.margins)),
+    columns: pd.columns,
+    gutter: pd.gutter,
+    bleed: pd.bleed,
+    slug: pd.slug,
+    background: '#FFFFFF',
+    showGuides: true
   };
 }
 
@@ -1119,6 +1739,7 @@ function removePage(idx) {
 
 function switchPage(idx) {
   if (idx >= 0 && idx < state.pages.length) {
+    if (state.editingElementId) exitInlineEdit(true);
     state.currentPageIndex = idx;
     state.selectedElements = [];
     emit();
@@ -1170,7 +1791,11 @@ function mkEl(type, opts) {
     b.dropCap = o.dropCap || false;
     b.hyphens = o.hyphens || false;
   }
-  if (type === 'image') b.src = o.src || '';
+  if (type === 'image') {
+    b.src = o.src || '';
+    /* Preserve aspect ratio while resizing unless the user unchecks it (§26). */
+    b.lockAspect = o.lockAspect != null ? !!o.lockAspect : true;
+  }
   if (type === 'line') {
     b.x2 = o.x2 || b.x + 100;
     b.y2 = o.y2 || b.y;
@@ -1280,37 +1905,98 @@ function sendBackward(id) {
   return false;
 }
 
-function align(how) {
+/* --------------- Shape alignment (Properties ▸ Alignment) --------------- */
+/* Aligns every selected element to a 3×3 anchor on a target box. The anchor is
+   two letters: vertical `t|m|b` + horizontal `l|c|r` (e.g. 'tl', 'mc', 'br').
+   The target is the page, the page's margin (content) box, or the selection's
+   own bounding box. Pure geometry: exact placement, rounded to whole CSS px,
+   never routed through snap() — an explicit align should be precise. */
+var ALIGN_TARGETS = ['page', 'margins', 'selection'];
+
+/* Axis-aligned bounding box of any element (lines store two endpoints). */
+function elBBox(el) {
+  if (!el) return null;
+  if (el.type === 'line') {
+    return {
+      x: Math.min(el.x, el.x2), y: Math.min(el.y, el.y2),
+      w: Math.abs(el.x2 - el.x), h: Math.abs(el.y2 - el.y)
+    };
+  }
+  return { x: el.x, y: el.y, w: el.w, h: el.h };
+}
+
+/* The rectangle an anchor is measured against. Returns null when the target is
+   unusable (no page, or "selection" with fewer than two elements). */
+function alignTargetBox(kind) {
   var p = cpage();
-  if (!p || state.selectedElements.length < 2) return;
-  var pw = p.pw || PW, ph = p.ph || PH;
-  p.elements.forEach(function(el) {
-    if (state.selectedElements.indexOf(el.id) === -1) return;
-    if (how === 'left') {
-      var minX = Infinity;
-      state.selectedElements.forEach(function(id) {
-        var found = null;
-        for (var k = 0; k < p.elements.length; k++) {
-          if (p.elements[k].id === id) { found = p.elements[k]; break; }
-        }
-        if (found) minX = Math.min(minX, found.x);
-      });
-      el.x = minX;
-    } else if (how === 'center') {
-      el.x = Math.round(pw / 2 - el.w / 2);
-    } else if (how === 'right') {
-      var maxX = 0;
-      state.selectedElements.forEach(function(id) {
-        var found = null;
-        for (var k = 0; k < p.elements.length; k++) {
-          if (p.elements[k].id === id) { found = p.elements[k]; break; }
-        }
-        if (found) maxX = Math.max(maxX, found.x + found.w);
-      });
-      el.x = maxX - el.w;
-    }
+  if (!p) return null;
+  if (kind === 'margins') {
+    var m = p.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+    var mt = m.top || 0, mr = m.right || 0, mb = m.bottom || 0, ml = m.left || 0;
+    return { x: ml, y: mt, w: Math.max(0, (p.pw || PW) - ml - mr), h: Math.max(0, (p.ph || PH) - mt - mb) };
+  }
+  if (kind === 'selection') {
+    var ids = state.selectedElements;
+    if (!ids || ids.length < 2) return null;
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    ids.forEach(function(id) {
+      var g = getEl(id);
+      if (!g) return;
+      var b = elBBox(g.el);
+      if (!b) return;
+      minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+      maxX = Math.max(maxX, b.x + b.w); maxY = Math.max(maxY, b.y + b.h);
+    });
+    if (!isFinite(minX) || !isFinite(minY)) return null;
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY };
+  }
+  return { x: 0, y: 0, w: p.pw || PW, h: p.ph || PH };
+}
+
+function alignSelection(anchor, target) {
+  if (state.readOnly) return;
+  var ids = state.selectedElements;
+  if (!ids || !ids.length) return;
+  var kind = ALIGN_TARGETS.indexOf(target) === -1 ? state.alignTarget : target;
+  var box = alignTargetBox(kind);
+  if (!box) {
+    if (kind === 'selection') showToast('Select two or more elements to align to the selection.');
+    return;
+  }
+  var v = anchor.charAt(0); /* t | m | b */
+  var h = anchor.charAt(1); /* l | c | r */
+  if ('tmb'.indexOf(v) === -1 || 'lcr'.indexOf(h) === -1) return;
+
+  /* Work out every delta first so a no-op click never pushes an undo step. */
+  var plan = [];
+  ids.forEach(function(id) {
+    var g = getEl(id);
+    if (!g) return;
+    var b = elBBox(g.el);
+    if (!b) return;
+    var tx = b.x, ty = b.y;
+    if (h === 'l') tx = box.x;
+    else if (h === 'c') tx = box.x + (box.w - b.w) / 2;
+    else if (h === 'r') tx = box.x + box.w - b.w;
+    if (v === 't') ty = box.y;
+    else if (v === 'm') ty = box.y + (box.h - b.h) / 2;
+    else if (v === 'b') ty = box.y + box.h - b.h;
+    var dx = Math.round(tx) - b.x;
+    var dy = Math.round(ty) - b.y;
+    if (dx || dy) plan.push({ g: g, dx: dx, dy: dy });
   });
+  if (!plan.length) return;
+
+  plan.forEach(function(it) {
+    var el = it.g.el;
+    el.x += it.dx; el.y += it.dy;
+    if (el.type === 'line') { el.x2 += it.dx; el.y2 += it.dy; }
+    syncElementDOM(el.id);
+  });
+  /* Snapshot the post-mutation state, matching the rest of the app (the undo
+     stack top always equals the live state, so undo/redo round-trips). */
   saveSnapshot();
+  updateProps();
   emit();
 }
 
@@ -1320,11 +2006,13 @@ function select(id, add) {
   } else {
     state.selectedElements = [id];
   }
+  updateProps();
   emit();
 }
 
 function deselect() {
   state.selectedElements = [];
+  updateProps();
   emit();
 }
 
@@ -1333,6 +2021,7 @@ function undo() {
   state.redoStack.push(state.undoStack.pop());
   state.pages = JSON.parse(state.undoStack[state.undoStack.length - 1]);
   state.selectedElements = [];
+  updateProps();
   emit();
 }
 
@@ -1342,6 +2031,7 @@ function redo() {
   state.undoStack.push(next);
   state.pages = JSON.parse(next);
   state.selectedElements = [];
+  updateProps();
   emit();
 }
 
@@ -1351,7 +2041,9 @@ function save() {
     localStorage.setItem('lp-zoom', String(state.zoom));
     localStorage.setItem('lp-panX', String(state.panX));
     localStorage.setItem('lp-panY', String(state.panY));
-    var d = { v: 1, ts: new Date().toISOString(), pages: state.pages, idx: state.currentPageIndex };
+    /* Single persisted shape (v2). Zoom/pan stay in their own keys above. */
+    var d = buildProjectData();
+    delete d.zoom; delete d.panX; delete d.panY;
     localStorage.setItem(SK, JSON.stringify(d));
   } catch (e) {
     showToast('Could not save to local storage. Storage may be full.', 'error');
@@ -1362,21 +2054,14 @@ function load() {
   try {
     var raw = localStorage.getItem(SK);
     if (!raw) return null;
-    var d = JSON.parse(raw);
-    if (d && d.pages && Array.isArray(d.pages)) {
-      /* Migrate: ensure all pages have pw/ph */
-      d.pages.forEach(function(pg) {
-        if (pg.pw == null) pg.pw = PW;
-        if (pg.ph == null) pg.ph = PH;
-      });
-      return d;
-    }
+    return normalizeProject(JSON.parse(raw));
   } catch (e) {
     return null;
   }
 }
 
 function autosave() {
+  if (state.readOnly) return;
   if (!state.dirty) return;
   clearTimeout(timer);
   timer = setTimeout(function() {
@@ -1385,51 +2070,365 @@ function autosave() {
   }, SAVE_DELAY);
 }
 
-/* --------------- Export --------------- */
-function exportHTML() {
-  /* Collect fonts used in the document */
-  var fonts = [];
-  state.pages.forEach(function(pg) {
-    pg.elements.forEach(function(el) {
-      if (el.type === 'text' && el.fontFamily) {
-        var f = el.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
-        if (fonts.indexOf(f) === -1 && f !== 'system-ui' && f !== 'inherit') fonts.push(f);
-      }
+/* ================================================================
+   Auto-save to file (File System Access API) + multi-tab sync
+   Ported from the Diagram project.
+   ================================================================ */
+
+/* --------------- Project serialization --------------- */
+function buildProjectData() {
+  return {
+    v: 2,
+    ts: new Date().toISOString(),
+    project: state.project,
+    pages: state.pages,
+    idx: state.currentPageIndex,
+    currentPage: cpage() ? cpage().id : null,
+    zoom: state.zoom,
+    panX: state.panX,
+    panY: state.panY
+  };
+}
+
+/* --------------- File System Access API: native auto-save --------------- */
+var AUTO_SAVE_DB = 'layout-fs-handles';
+var AUTO_SAVE_STORE = 'handles';
+var AUTO_SAVE_KEY = 'current-handle';
+
+function fsApiSupported() {
+  return typeof window.showSaveFilePicker === 'function';
+}
+
+function openAutoSaveDB() {
+  return new Promise(function(resolve, reject) {
+    var req = indexedDB.open(AUTO_SAVE_DB, 1);
+    req.onupgradeneeded = function() { req.result.createObjectStore(AUTO_SAVE_STORE); };
+    req.onsuccess = function() { resolve(req.result); };
+    req.onerror = function() { reject(req.error); };
+  });
+}
+
+function storeFileHandle(handle) {
+  return openAutoSaveDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(AUTO_SAVE_STORE, 'readwrite');
+      tx.objectStore(AUTO_SAVE_STORE).put(handle, AUTO_SAVE_KEY);
+      tx.oncomplete = function() { db.close(); resolve(); };
+      tx.onerror = function() { db.close(); reject(tx.error); };
     });
   });
-  var fontLink = '';
-  if (fonts.length > 0) {
-    fontLink = '<link href="https://fonts.googleapis.com/css2?' + fonts.map(function(f) { return 'family=' + encodeURIComponent(f) + ':wght@400;700'; }).join('&') + '&display=swap" rel="stylesheet">\n';
+}
+
+function loadFileHandle() {
+  return openAutoSaveDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(AUTO_SAVE_STORE, 'readonly');
+      var req = tx.objectStore(AUTO_SAVE_STORE).get(AUTO_SAVE_KEY);
+      req.onsuccess = function() { db.close(); resolve(req.result || null); };
+      req.onerror = function() { db.close(); reject(req.error); };
+    });
+  }).catch(function() { return null; });
+}
+
+function clearFileHandle() {
+  return openAutoSaveDB().then(function(db) {
+    return new Promise(function(resolve, reject) {
+      var tx = db.transaction(AUTO_SAVE_STORE, 'readwrite');
+      tx.objectStore(AUTO_SAVE_STORE).delete(AUTO_SAVE_KEY);
+      tx.oncomplete = function() { db.close(); resolve(); };
+      tx.onerror = function() { db.close(); reject(tx.error); };
+    });
+  }).catch(function() {});
+}
+
+function writeToAutoSaveFile() {
+  if (!state.autoSaveFileHandle) return Promise.resolve();
+  return state.autoSaveFileHandle.queryPermission({ mode: 'readwrite' }).then(function(perm) {
+    if (perm !== 'granted') {
+      return state.autoSaveFileHandle.requestPermission({ mode: 'readwrite' });
+    }
+    return perm;
+  }).then(function(perm) {
+    if (perm !== 'granted') {
+      state.autoSaveFileHandle = null;
+      updateAutoSaveUI();
+      showToast('Auto-save disabled: permission denied', 'error');
+      return;
+    }
+    return state.autoSaveFileHandle.createWritable().then(function(writable) {
+      return writable.write(JSON.stringify(buildProjectData(), null, 2)).then(function() {
+        return writable.close();
+      });
+    });
+  }).catch(function(err) {
+    console.error('Auto-save write failed:', err);
+    state.autoSaveFileHandle = null;
+    updateAutoSaveUI();
+    showToast('Auto-save failed: ' + err.message, 'error');
+  });
+}
+
+function updateAutoSaveUI() {
+  var dot = $('save-dot');
+  var btn = $('btn-save');
+  if (!dot || !btn) return;
+  if (state.autoSaveFileHandle) {
+    dot.style.display = '';
+    btn.title = 'Auto-saving to file. Click to download a backup.';
+  } else {
+    dot.style.display = 'none';
+    btn.title = fsApiSupported() ? 'Save — opens auto-save (Chrome/Edge)' : 'Save Project (.json)';
   }
-  var h = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n' + fontLink + '<style>\n';
-  h += 'body{margin:0;font-family:sans-serif;}\n';
-  h += '.page{position:relative;background:white;overflow:hidden;page-break-after:always;margin:0 auto;}\n';
-  h += '.page>*{position:absolute;}\n';
-  h += '.drop-cap::first-letter{float:left;font-size:3em;line-height:.8;padding-right:6px;padding-top:4px;font-weight:700;}\n';
-  h += '</style>\n</head>\n<body>\n';
-  state.pages.forEach(function(pg) {
-    var pw = pg.pw || PW, ph = pg.ph || PH;
-    h += '<div class="page" style="width:' + pw + 'px;height:' + ph + 'px">\n';
-    pg.elements.forEach(function(el) {
-      if (!el.visible) return;
-      var s = 'left:' + el.x + 'px;top:' + el.y + 'px;width:' + el.w + 'px;height:' + el.h + 'px;';
-      s += 'opacity:' + (el.opacity / 100) + ';border-radius:' + el.radius + 'px;';
-      if (el.rotation) s += 'transform:rotate(' + el.rotation + 'deg);';
-      if (el.type === 'text') {
-        s += 'color:' + el.textColor + ';font-family:' + el.fontFamily + ';font-size:' + el.fontSize + 'px;font-weight:' + el.fontWeight + ';text-align:' + el.textAlign + ';line-height:' + (el.lineHeight || 1.5) + ';letter-spacing:' + (el.letterSpacing || 0) + 'px;padding:' + (el.padding != null ? el.padding : 8) + 'px;text-indent:' + (el.textIndent || 0) + 'px;display:flex;flex-direction:column;justify-content:' + (el.verticalAlign === 'middle' ? 'center' : el.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start') + ';overflow:' + (el.overflow === 'visible' ? 'visible' : el.overflow === 'scroll' ? 'auto' : 'hidden') + ';column-count:' + (el.columnCount || 1) + ';' + (el.columnCount > 1 ? 'column-gap:' + (el.columnGap || 20) + 'px;' : '') + (el.hyphens ? 'hyphens:auto;' : '') + 'background:' + rgba(el.fill, el.fillOpacity) + ';';
-      } else if (el.type === 'line') {
-        s += 'width:' + (el.x2 - el.x) + 'px;border-top:' + el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity) + ';height:0;';
-      }
-      var extra = el.type === 'image' ? ' src="' + el.src + '"' : '';
-      var inner = el.type === 'text' ? (el.richText || el.text) : '';
-      if (el.type === 'image') {
-        h += '  <img style="' + s + '"' + extra + ' />\n';
+}
+
+/* Wrap save() so every persistence also updates the file and notifies tabs */
+var _baseSave = save;
+save = function() {
+  if (state.readOnly) return;
+  _baseSave();
+  if (state.autoSaveFileHandle) writeToAutoSaveFile();
+  broadcastStateChange();
+};
+
+function downloadSaveFile() {
+  var blob = new Blob([JSON.stringify(buildProjectData(), null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.download = 'layout-project.json';
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('Project downloaded');
+}
+
+function startAutoSave() {
+  var opts = {
+    suggestedName: 'layout-project.json',
+    types: [{ description: 'JSON Layout Project', accept: { 'application/json': ['.json'] } }]
+  };
+  window.showSaveFilePicker(opts).then(function(handle) {
+    state.autoSaveFileHandle = handle;
+    storeFileHandle(handle);
+    updateAutoSaveUI();
+    writeToAutoSaveFile();
+    showToast('Auto-save enabled: ' + handle.name);
+  }).catch(function(err) {
+    if (err.name !== 'AbortError') console.error('Auto-save picker failed:', err);
+  });
+}
+
+function restoreAutoSaveHandle() {
+  if (!fsApiSupported()) return;
+  loadFileHandle().then(function(handle) {
+    if (!handle) return;
+    return handle.queryPermission({ mode: 'readwrite' }).then(function(perm) {
+      if (perm === 'granted') {
+        state.autoSaveFileHandle = handle;
+        updateAutoSaveUI();
       } else {
-        var dirAttr = el.type === 'text' && el.dir ? ' dir="' + el.dir + '"' : '';
-        var dropCapClass = el.type === 'text' && el.dropCap ? ' class="drop-cap"' : '';
-        h += '  <div style="' + s + '"' + extra + dirAttr + dropCapClass + '>' + inner + '</div>\n';
+        return handle.requestPermission({ mode: 'readwrite' }).then(function(perm2) {
+          if (perm2 === 'granted') {
+            state.autoSaveFileHandle = handle;
+            updateAutoSaveUI();
+          } else {
+            clearFileHandle();
+          }
+        });
       }
     });
+  }).catch(function() { clearFileHandle(); });
+}
+
+/* --------------- BroadcastChannel: multi-tab coordination --------------- */
+function setupBroadcastChannel() {
+  state.tabId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6);
+  try {
+    state.channel = new BroadcastChannel('layout-sync');
+  } catch (e) {
+    return; /* BroadcastChannel unsupported */
+  }
+
+  var claimTimeout = null;
+
+  function tryBecomeEditor() {
+    state.channel.postMessage({ type: 'claim', tabId: state.tabId });
+    clearTimeout(claimTimeout);
+    claimTimeout = setTimeout(function() {
+      claimTimeout = null;
+      setReadOnly(false);
+    }, 250);
+  }
+
+  state.channel.onmessage = function(ev) {
+    var msg = ev.data;
+    if (!msg || !msg.type) return;
+    switch (msg.type) {
+      case 'claim':
+        if (msg.tabId === state.tabId) break;
+        if (claimTimeout) {
+          /* Both tabs are contending — lower tabId wins (lexicographic) */
+          if (msg.tabId < state.tabId) {
+            clearTimeout(claimTimeout);
+            claimTimeout = null;
+            setReadOnly(true, msg.tabId);
+          }
+        } else if (!state.readOnly) {
+          /* We already own the editor role — deny the newcomer */
+          state.channel.postMessage({ type: 'deny', ownerTabId: state.tabId, tabId: msg.tabId });
+        }
+        break;
+      case 'deny':
+        if (msg.tabId === state.tabId) {
+          clearTimeout(claimTimeout);
+          claimTimeout = null;
+          setReadOnly(true, msg.ownerTabId || 'another tab');
+        }
+        break;
+      case 'release':
+        if (state.readOnly && msg.tabId !== state.tabId) tryBecomeEditor();
+        break;
+      case 'state-changed':
+        if (state.readOnly && msg.tabId !== state.tabId) reloadFromStorage();
+        break;
+    }
+  };
+
+  tryBecomeEditor();
+}
+
+function setReadOnly(readOnly, ownerHint) {
+  state.readOnly = readOnly;
+  if (readOnly) {
+    document.body.classList.add('read-only-mode');
+    var banner = $('readonly-banner');
+    if (banner) {
+      banner.textContent = 'Read-only — ' + (ownerHint || 'another tab') + ' is editing';
+      banner.style.display = '';
+    }
+    showToast('This tab is read-only — ' + (ownerHint || 'another tab') + ' is editing', 'error');
+  } else {
+    document.body.classList.remove('read-only-mode');
+    var banner2 = $('readonly-banner');
+    if (banner2) banner2.style.display = 'none';
+  }
+}
+
+function reloadFromStorage() {
+  var d = load();
+  if (!d || !d.pages) return;
+  state.project = d.project;
+  state.pages = d.pages;
+  state.currentPageIndex = d.idx || 0;
+  if (state.currentPageIndex >= state.pages.length || state.currentPageIndex < 0) state.currentPageIndex = 0;
+  state.selectedElements = [];
+  state.undoStack = [JSON.stringify(state.pages)];
+  state.redoStack = [];
+  clampPan();
+  applyTransform();
+  refresh();
+}
+
+window.addEventListener('storage', function(e) {
+  if (e.key === SK && state.readOnly && e.newValue) reloadFromStorage();
+});
+
+function broadcastStateChange() {
+  if (state.channel && !state.readOnly) {
+    try { state.channel.postMessage({ type: 'state-changed', tabId: state.tabId }); } catch (e) {}
+  }
+}
+
+function releaseChannel() {
+  if (state.channel && !state.readOnly) {
+    try {
+      state.channel.postMessage({ type: 'release', tabId: state.tabId });
+      state.channel.close();
+    } catch (e) {}
+  }
+}
+
+/* --------------- Export --------------- */
+/* Bleed box for a page. `off` is the offset added to every element's x/y so the
+   art sits inside an expanded canvas; `bleed` is 0 unless the export option is on. */
+function exportBox(pg) {
+  var bleed = 0;
+  if (state.project && state.project.export && state.project.export.includeBleed) {
+    bleed = Math.max(0, parseFloat(pg.bleed) || 0);
+  }
+  var pw = pg.pw || PW, ph = pg.ph || PH;
+  return { bleed: bleed, off: bleed, pw: pw, ph: ph, ow: pw + 2 * bleed, oh: ph + 2 * bleed };
+}
+
+/* Crop marks at the four trim corners, drawn inside the bleed area.
+   Honest approximation: browsers cannot set real trim/bleed boxes (§10.2). */
+function cropMarksHTML(off, pw, ph) {
+  if (!(off >= 4)) return '';
+  var len = Math.min(off, 12);
+  var base = 'position:absolute;background:#000;';
+  function h(x, y) { return '<div style="' + base + 'left:' + x + 'px;top:' + y + 'px;width:' + len + 'px;height:1px"></div>'; }
+  function v(x, y) { return '<div style="' + base + 'left:' + x + 'px;top:' + y + 'px;width:1px;height:' + len + 'px"></div>'; }
+  return h(off - len, off) + v(off, off - len) +
+         h(off + pw, off) + v(off + pw - 1, off - len) +
+         h(off - len, off + ph - 1) + v(off, off + ph) +
+         h(off + pw, off + ph - 1) + v(off + pw - 1, off + ph);
+}
+
+/* Markup for one page's elements. `off` shifts every element by the bleed offset.
+   Reuses domEl() — the exact builder the canvas uses — so the exported markup
+   carries the same classes and inline styles as the on-screen page. This is what
+   makes the PDF pixel-identical: a hand-written parallel renderer drifts from
+   styleTextBox() the moment either side changes (see §32). */
+function exportElementsHTML(pg, off) {
+  var wrap = document.createElement('div');
+  pg.elements.forEach(function(el, i) {
+    if (!el.visible) return;
+    var node = domEl(el, i);
+    /* Shift the already-positioned node by the bleed offset. domEl() writes
+       left/top for every type (lines use their min corner), so parseFloat is safe. */
+    if (off) {
+      node.style.left = (parseFloat(node.style.left) + off) + 'px';
+      node.style.top = (parseFloat(node.style.top) + off) + 'px';
+    }
+    wrap.appendChild(node);
+  });
+  return wrap.innerHTML;
+}
+
+function exportHTML() {
+  /* No web fonts are linked on purpose: the canvas loads none either, and the
+     font-family choices (Georgia, Times New Roman, Arial, Helvetica Neue,
+     Courier New, system-ui) are all locally-installed system fonts. Shipping a
+     Google Fonts <link> would let the print layout pick a *downloaded* face the
+     on-screen page never had (or simply block the print on a slow/offline
+     request), breaking the pixel-for-pixel match. Keep the export self-contained. */
+  var first = state.pages[0] || cpage();
+  var fb = first ? exportBox(first) : { ow: PW, oh: PH };
+  var h = '<!DOCTYPE html>\n<html>\n<head>\n<meta charset="UTF-8">\n<style>\n';
+  /* Physical @page size so the print dialog defaults to the trim/bleed box.
+     Multi-size documents: browsers honour only one @page size — we emit the first page's. */
+  h += '@page{size:' + fromPx(fb.ow, 'in').toFixed(4) + 'in ' + fromPx(fb.oh, 'in').toFixed(4) + 'in;margin:0;}\n';
+  h += 'html,body{margin:0;padding:0;}\n';
+  h += 'body{font-family:sans-serif;background:#8A8A8E;}\n';
+  /* Mirror the canvas stylesheet. exportElementsHTML() now emits the very same
+     domEl() markup the canvas renders, so shipping these rules (the global
+     box-sizing/margin reset plus the .el-* classes) makes the print layout
+     identical to the screen layout. See §32. */
+  h += '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}\n';
+  h += '.page{position:relative;overflow:hidden;page-break-after:always;margin:0 auto;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}\n';
+  h += '.page>*{position:absolute;}\n';
+  h += '.canvas-element{position:absolute;border:1px solid transparent;}\n';
+  h += '.el-text{white-space:pre-wrap;word-break:break-word;min-width:20px;min-height:20px;}\n';
+  h += '.el-content{display:block;width:100%;box-sizing:border-box;}\n';
+  h += '.el-image{overflow:hidden;}\n';
+  h += '.el-image img{width:100%;height:100%;object-fit:cover;display:block;}\n';
+  h += '.drop-cap::first-letter{float:left;font-size:3em;line-height:.8;padding-right:6px;padding-top:4px;font-weight:700;}\n';
+  h += '@media print{body{background:none;}.page{margin:0;}}\n';
+  h += '</style>\n</head>\n<body>\n';
+  state.pages.forEach(function(pg) {
+    var box = exportBox(pg);
+    var bg = pg.background || '#FFFFFF';
+    h += '<div class="page" style="width:' + box.ow + 'px;height:' + box.oh + 'px;background:' + bg + '">\n';
+    h += exportElementsHTML(pg, box.off);
+    if (box.bleed > 0) h += cropMarksHTML(box.bleed, box.pw, box.ph);
     h += '</div>\n';
   });
   h += '</body>\n</html>';
@@ -1448,25 +2447,195 @@ function rgba(color, opacity) {
   return 'rgba('+r+','+g+','+b+','+o+')';
 }
 
+/* Effective PPI of a placed image = natural pixels / displayed physical inches.
+   Used by the Image panel warning; never affects layout geometry (§4). */
+function imagePPI(el) {
+  if (!el || el.type !== 'image') return null;
+  var box = $('page-content');
+  var img = box ? box.querySelector('[data-id="' + el.id + '"] img') : null;
+  if (!img || !img.naturalWidth) return null;
+  var inches = (el.w || 1) / PX_PER_IN;
+  if (!(inches > 0)) return null;
+  return img.naturalWidth / inches;
+}
+
+/* Box that matches the source image's natural aspect ratio, keeping the element's
+   current longest side (same rule as insert §25 and Change Image §26.5).
+   Returns null when the natural size is unusable. */
+function naturalFitBox(el, nw, nh) {
+  if (!el || !(nw > 0) || !(nh > 0)) return null;
+  var box = Math.max(1, Math.max(el.w || 1, el.h || 1));
+  var s = box / Math.max(nw, nh);
+  return { w: Math.max(1, Math.round(nw * s)), h: Math.max(1, Math.round(nh * s)) };
+}
+
+/* Natural pixel size of an image element: read from the already-decoded <img> when
+   possible, otherwise probe `src`. Always calls cb(w, h) — cb(0, 0) on failure. */
+function naturalImageSize(id, src, cb) {
+  var img = document.querySelector('.canvas-element[data-id="' + id + '"] img');
+  if (img && img.naturalWidth > 0) { cb(img.naturalWidth, img.naturalHeight); return; }
+  if (!src) { cb(0, 0); return; }
+  var probe = new Image();
+  probe.onload = function() {
+    cb(probe.naturalWidth || probe.width || 0, probe.naturalHeight || probe.height || 0);
+  };
+  probe.onerror = function() { cb(0, 0); };
+  probe.src = src;
+}
+
 function exportPDF() {
   var html = exportHTML();
   var w = window.open('', '_blank', 'width=900,height=700');
   if (!w) { showToast('Please allow popups for PDF export', 'error'); return; }
   w.document.write(html);
   w.document.close();
-  w.onload = function() { w.print(); };
+  try { w.document.title = (state.project && state.project.name ? state.project.name : 'Layout') + '.pdf'; } catch (e) {}
+  var printed = false;
+  function doPrint() { if (printed) return; printed = true; try { w.print(); } catch (e) {} }
+  w.onload = function() { setTimeout(doPrint, 250); };
+  setTimeout(doPrint, 1200); /* fallback if onload already fired */
+  showToast('In the print dialog choose "Actual size" and no scaling');
+}
+
+/* Raster export via SVG <foreignObject> (no dependencies). Caveats (§10.3):
+   web fonts may not load into the SVG image, cross-origin images taint the
+   canvas, and some browsers (older Safari) render foreignObject poorly. */
+function exportRaster(format) {
+  var pg = cpage();
+  if (!pg) return;
+  if (typeof XMLSerializer === 'undefined') { showToast('Raster export is not supported in this browser', 'error'); return; }
+  var dpi = (state.project && state.project.dpi) || 300;
+  var pw = pg.pw || PW, ph = pg.ph || PH;
+  var W = Math.round(pw * dpi / PX_PER_IN), H = Math.round(ph * dpi / PX_PER_IN);
+  if (!(W > 0) || !(H > 0) || W * H > 80000000) { showToast('Raster size too large (' + W + '×' + H + ')', 'error'); return; }
+  var bg = pg.background || '#FFFFFF';
+
+  /* Build a detached, self-contained copy of the page so XMLSerializer emits XHTML. */
+  var host = document.createElement('div');
+  host.setAttribute('style', 'position:relative;width:' + pw + 'px;height:' + ph + 'px;background:' + bg + ';overflow:hidden;');
+  var style = document.createElement('style');
+  style.textContent = '*,*::before,*::after{box-sizing:border-box}.canvas-element{position:absolute;border:0;margin:0}.el-content{display:block;width:100%;box-sizing:border-box}.el-text{white-space:pre-wrap;word-break:break-word}.el-image{overflow:hidden}.el-image img{width:100%;height:100%;object-fit:cover;display:block}';
+  host.appendChild(style);
+  pg.elements.forEach(function(el, i) { if (el.visible) host.appendChild(domEl(el, i)); });
+
+  var xhtml;
+  try { xhtml = new XMLSerializer().serializeToString(host); }
+  catch (e) { showToast('Raster export failed: ' + e.message, 'error'); return; }
+
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + pw + ' ' + ph + '">' +
+            '<foreignObject x="0" y="0" width="' + pw + '" height="' + ph + '">' + xhtml + '</foreignObject></svg>';
+  var url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  var mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
+  var ext = format === 'jpeg' ? 'jpg' : 'png';
+  var img = new Image();
+  img.onload = function() {
+    var canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.drawImage(img, 0, 0, W, H);
+    function done(blob) {
+      if (!blob) { showToast('Raster export failed', 'error'); return; }
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (state.project && state.project.name ? state.project.name : 'layout') + '-p' + (state.currentPageIndex + 1) + '.' + ext;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+      showToast('Exported ' + ext.toUpperCase() + ' at ' + dpi + ' DPI (' + W + '×' + H + ')');
+    }
+    try {
+      if (canvas.toBlob) canvas.toBlob(done, mime, 0.92);
+      else { var a2 = document.createElement('a'); a2.href = canvas.toDataURL(mime, 0.92); a2.download = 'layout-p' + (state.currentPageIndex + 1) + '.' + ext; document.body.appendChild(a2); a2.click(); document.body.removeChild(a2); showToast('Exported ' + ext.toUpperCase()); }
+    } catch (e) {
+      showToast('Raster export blocked (cross-origin image?): ' + e.message, 'error');
+    }
+  };
+  img.onerror = function() { showToast('Raster export failed — the browser could not render the page. Try PDF instead.', 'error'); };
+  img.src = url;
 }
 
 /* --------------- Canvas Renderer --------------- */
 function renderPage() {
   var ct = $('page-content');
   if (!ct) return;
+  /* If in inline edit mode, save the editing element's state before clearing */
+  var savedEditHTML = null, savedElId = null;
+  if (state.editingElementId) {
+    var savedBox = ct.querySelector('[data-id="' + state.editingElementId + '"]');
+    var savedContent = getContentEl(savedBox);
+    if (savedContent) {
+      savedEditHTML = savedContent.innerHTML;
+      savedElId = state.editingElementId;
+    }
+  }
   ct.innerHTML = '';
   var p = cpage();
   if (!p) return;
   p.elements.forEach(function(el, i) {
     ct.appendChild(domEl(el, i));
   });
+  /* Restore editing element if we saved it */
+  if (savedElId) {
+    var newBox = ct.querySelector('[data-id="' + savedElId + '"]');
+    var newContent = getContentEl(newBox);
+    if (newBox && newContent && savedEditHTML !== null) {
+      newContent.setAttribute('contenteditable', 'true');
+      newContent.spellcheck = true;
+      newContent.innerHTML = savedEditHTML;
+      newContent.style.pointerEvents = 'auto';
+      var elData = getEl(savedElId);
+      if (elData) applyElementStyles(newBox, elData.el);
+      showInlineToolbar(newBox);
+    }
+  }
+}
+
+/* Find the direct .el-content child of a canvas box. */
+function getContentEl(box) {
+  if (!box) return null;
+  var kids = box.children;
+  for (var i = 0; i < kids.length; i++) {
+    if (kids[i].classList && kids[i].classList.contains('el-content')) return kids[i];
+  }
+  return null;
+}
+
+/* Single source of truth for text-box styling.
+   box     = .canvas-element (chrome: layout, padding, frame)
+   content = .el-content     (text: typography, columns, drop cap)
+   Used by domEl() (normal render) and applyElementStyles() (edit mode) so the
+   two are always pixel-identical. */
+function styleTextBox(box, content, el) {
+  /* --- Box / chrome --- */
+  box.style.display = 'flex';
+  box.style.flexDirection = 'column';
+  box.style.justifyContent = el.verticalAlign === 'middle' ? 'center' : el.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
+  box.style.padding = (el.padding != null ? el.padding : 8) + 'px';
+  box.style.overflow = el.overflow === 'visible' ? 'visible' : el.overflow === 'scroll' ? 'auto' : 'hidden';
+  box.style.background = rgba(el.fill, el.fillOpacity);
+  box.style.border = el.strokeWidth > 0 ? el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity) : 'none';
+  box.style.borderRadius = el.radius + 'px';
+  /* --- Content / text --- */
+  if (!content) return;
+  content.style.width = '100%';
+  content.style.fontFamily = el.fontFamily;
+  content.style.fontSize = el.fontSize + 'px';
+  content.style.fontWeight = el.fontWeight;
+  content.style.textAlign = el.textAlign;
+  content.style.lineHeight = el.lineHeight || 1.5;
+  content.style.letterSpacing = (el.letterSpacing || 0) + 'px';
+  content.style.textIndent = (el.textIndent || 0) + 'px';
+  content.style.columnCount = el.columnCount || 1;
+  content.style.columnGap = el.columnCount > 1 ? (el.columnGap || 20) + 'px' : '';
+  content.style.color = el.textColor;
+  content.style.hyphens = el.hyphens ? 'auto' : '';
+  content.setAttribute('dir', el.dir || 'ltr');
+  if (el.dropCap) content.classList.add('drop-cap');
+  if (el.paraSpacing > 0) {
+    var ps = el.paraSpacing + 'px';
+    [].forEach.call(content.querySelectorAll('p,div'), function(c) { c.style.marginBottom = ps; });
+  }
 }
 
 function domEl(el, i) {
@@ -1481,45 +2650,33 @@ function domEl(el, i) {
   d.style.height = el.h + 'px';
   d.style.opacity = (el.opacity / 100);
   d.style.zIndex = i + 1;
-  if (!el.visible) d.style.display = 'none';
   /* Rotation */
   if (el.rotation) d.style.transform = 'rotate(' + el.rotation + 'deg)';
 
   if (el.type === 'text') {
-    d.innerHTML = el.richText || el.text;
-    d.spellcheck = true;
-    d.style.fontFamily = el.fontFamily;
-    d.style.fontSize = el.fontSize + 'px';
-    d.style.fontWeight = el.fontWeight;
-    d.style.textAlign = el.textAlign;
-    d.style.lineHeight = el.lineHeight || 1.5;
-    d.style.letterSpacing = (el.letterSpacing || 0) + 'px';
-    d.style.padding = (el.padding != null ? el.padding : 8) + 'px';
-    d.style.display = 'flex';
-    d.style.flexDirection = 'column';
-    d.style.justifyContent = el.verticalAlign === 'middle' ? 'center' : el.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
-    d.style.overflow = el.overflow === 'visible' ? 'visible' : el.overflow === 'scroll' ? 'auto' : 'hidden';
-    d.style.textIndent = (el.textIndent || 0) + 'px';
-    d.style.columnCount = el.columnCount || 1;
-    if (el.columnCount > 1) d.style.columnGap = (el.columnGap || 20) + 'px';
-    d.dir = el.dir || 'ltr';
-    if (el.hyphens) d.style.hyphens = 'auto';
-    if (el.dropCap) d.classList.add('drop-cap');
-    /* Apply paragraph spacing to child p/div elements */
-    if (el.paraSpacing > 0) {
-      var ps = el.paraSpacing + 'px';
-      [].forEach.call(d.querySelectorAll('p,div'), function(c) { c.style.marginBottom = ps; });
-    }
-    d.style.color = el.textColor;
-    d.style.background = rgba(el.fill, el.fillOpacity);
-    d.style.border = el.strokeWidth > 0 ? el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity) : 'none';
-    d.style.borderRadius = el.radius + 'px';
+    var content = document.createElement('div');
+    content.className = 'el-content';
+    content.innerHTML = el.richText || el.text;
+    content.spellcheck = true;
+    d.appendChild(content);
+    styleTextBox(d, content, el);
   } else if (el.type === 'line') {
+    d.dataset.type = 'line';
+    d.style.border = 'none';
+    var minX = Math.min(el.x, el.x2);
+    var minY = Math.min(el.y, el.y2);
+    var dx = Math.abs(el.x2 - el.x);
+    var dy = Math.abs(el.y2 - el.y);
+    d.style.left = minX + 'px';
+    d.style.top = minY + 'px';
+    d.style.width = Math.max(dx, 1) + 'px';
+    d.style.height = Math.max(dy, 1) + 'px';
     d.style.background = 'transparent';
-    d.style.borderTop = el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity);
-    d.style.width = (el.x2 - el.x) + 'px';
-    d.style.height = '0px';
-    d.style.top = el.y + 'px';
+    d.innerHTML = '<svg width="100%" height="100%" style="display:block;overflow:visible">' +
+      '<line x1="' + (el.x - minX) + '" y1="' + (el.y - minY) + '" ' +
+      'x2="' + (el.x2 - minX) + '" y2="' + (el.y2 - minY) + '" ' +
+      'stroke="' + rgba(el.stroke, el.strokeOpacity) + '" stroke-width="' + el.strokeWidth + '"/>' +
+      '</svg>';
   } else if (el.type === 'image') {
     d.style.background = el.fill;
     d.style.borderRadius = el.radius + 'px';
@@ -1531,6 +2688,7 @@ function domEl(el, i) {
       d.appendChild(img);
     }
   }
+  if (!el.visible) d.style.display = 'none';
   return d;
 }
 
@@ -1710,20 +2868,54 @@ function renderLayers() {
 /* --------------- Properties Panel --------------- */
 function updateProps() {
   var sel = state.selectedElements;
+  var ps = $('prop-pos-section');
   var ts = $('prop-text-section');
   var is = $('prop-image-section');
+  var ls = $('prop-line-section');
   var ds = $('prop-doc-section');
+  var bs = $('prop-box-section');
+  var as = $('prop-align-section');
   if (!ts) return;
   if (sel.length === 0) {
+    if (ps) ps.style.display = 'none';
     ts.style.display = 'none';
     is.style.display = 'none';
-    /* Show document section */
+    if (ls) ls.style.display = 'none';
+    if (bs) bs.style.display = 'none';
+    if (as) as.style.display = 'none';
+    /* Document panel: shown only when nothing is selected (see §18 decision 4). */
     if (ds) {
       ds.style.display = 'block';
       var pg = cpage();
+      var u = units();
       if (pg) {
-        $('prop-doc-w').value = pg.pw || PW;
-        $('prop-doc-h').value = pg.ph || PH;
+        var mg = pg.margins || { top: 0, right: 0, bottom: 0, left: 0 };
+        $('prop-doc-w').value = fmtNum(pg.pw || PW, u);
+        $('prop-doc-h').value = fmtNum(pg.ph || PH, u);
+        $('prop-doc-ori').value = pg.orientation || 'portrait';
+        $('prop-doc-preset').value = pg.preset || 'custom';
+        $('prop-doc-mt').value = fmtNum(mg.top, u);
+        $('prop-doc-mr').value = fmtNum(mg.right, u);
+        $('prop-doc-mb').value = fmtNum(mg.bottom, u);
+        $('prop-doc-ml').value = fmtNum(mg.left, u);
+        $('prop-doc-cols').value = pg.columns || 1;
+        $('prop-doc-gutter').value = fmtNum(pg.gutter || 0, u);
+        $('prop-doc-bleed').value = fmtNum(pg.bleed || 0, u);
+        $('prop-doc-slug').value = fmtNum(pg.slug || 0, u);
+        $('prop-doc-exportbleed').checked = !!(state.project && state.project.export && state.project.export.includeBleed);
+        $('prop-doc-showguides').checked = pg.showGuides !== false;
+      }
+      if (state.project) {
+        $('prop-doc-units').value = state.project.units;
+        $('prop-doc-dpi').value = state.project.dpi;
+        $('prop-doc-grid').value = fmtNum(state.project.grid.spacing, u);
+        $('prop-doc-gridsub').value = state.project.grid.subdivisions;
+        $('prop-doc-baseline').value = fmtNum(state.project.grid.baseline, u);
+        $('prop-doc-showbaseline').checked = !!state.project.grid.showBaseline;
+        $('prop-doc-g-margins').checked = !!state.project.guides.showMargins;
+        $('prop-doc-g-cols').checked = !!state.project.guides.showColumns;
+        $('prop-doc-g-bleed').checked = !!state.project.guides.showBleed;
+        $('prop-doc-g-snap').checked = !!state.project.guides.snapToGuides;
       }
     }
     return;
@@ -1734,8 +2926,15 @@ function updateProps() {
   if (!d) return;
   var el = d.el;
 
+  /* Show position, box and alignment for any selected element */
+  if (ps) ps.style.display = 'block';
+  if (bs) bs.style.display = 'block';
+  if (as) as.style.display = 'block';
+
   if (el.type === 'text') {
     ts.style.display = 'block';
+    is.style.display = 'none';
+    if (ls) ls.style.display = 'none';
     var ed = $('prop-text-content');
     if (ed && document.activeElement !== ed && ed.innerHTML !== (el.richText || el.text)) ed.innerHTML = el.richText || el.text;
     $('prop-ff').value = el.fontFamily;
@@ -1745,17 +2944,17 @@ function updateProps() {
     $('prop-tc').value = el.textColor;
     $('prop-lh').value = el.lineHeight != null ? el.lineHeight : 1.5;
     $('prop-ls').value = el.letterSpacing != null ? el.letterSpacing : 0;
-    $('prop-pad').value = el.padding != null ? el.padding : 8;
+    setLenInput('prop-pad', el.padding != null ? el.padding : 8);
     $('prop-va').value = el.verticalAlign || 'top';
     $('prop-ov').value = el.overflow || 'clip';
     $('prop-ar').checked = el.autoResize || false;
     var arx = $('prop-ar-extra'); if (arx) arx.style.display = el.autoResize ? 'flex' : 'none';
-    $('prop-minh').value = el.minH || 0;
-    $('prop-maxh').value = el.maxH || 0;
-    $('prop-ps').value = el.paraSpacing || 0;
-    $('prop-ti').value = el.textIndent || 0;
+    setLenInput('prop-minh', el.minH || 0);
+    setLenInput('prop-maxh', el.maxH || 0);
+    setLenInput('prop-ps', el.paraSpacing || 0);
+    setLenInput('prop-ti', el.textIndent || 0);
     $('prop-cc').value = el.columnCount || 1;
-    $('prop-cg').value = el.columnGap || 20;
+    setLenInput('prop-cg', el.columnGap || 20);
     $('prop-dir').value = el.dir || 'ltr';
     $('prop-dc').checked = el.dropCap || false;
     $('prop-hy').checked = el.hyphens || false;
@@ -1764,11 +2963,37 @@ function updateProps() {
   }
 
   is.style.display = el.type === 'image' ? 'block' : 'none';
+  var lockEl = $('prop-image-lockaspect');
+  if (lockEl) lockEl.checked = el.type === 'image' && el.lockAspect !== false;
+  /* Effective-PPI warning (DPI never changes geometry — §4). */
+  var ppiEl = $('prop-image-ppi');
+  if (ppiEl) {
+    if (el.type === 'image') {
+      var ppi = imagePPI(el);
+      var target = (state.project && state.project.dpi) || 300;
+      if (ppi == null) { ppiEl.style.display = 'none'; }
+      else {
+        ppiEl.style.display = 'block';
+        var low = ppi < target;
+        ppiEl.style.color = low ? '#D97706' : 'var(--color-text-disabled)';
+        ppiEl.textContent = 'Effective ' + Math.round(ppi) + ' PPI' + (low ? ' — below the ' + target + ' DPI target' : '');
+      }
+    } else {
+      ppiEl.style.display = 'none';
+    }
+  }
+  if (ls) {
+    ls.style.display = el.type === 'line' ? 'block' : 'none';
+    if (el.type === 'line') {
+      setLenInput('prop-x2', el.x2);
+      setLenInput('prop-y2', el.y2);
+    }
+  }
 
-  $('prop-x').value = Math.round(el.x);
-  $('prop-y').value = Math.round(el.y);
-  $('prop-w').value = Math.round(el.w);
-  $('prop-h').value = Math.round(el.h);
+  setLenInput('prop-x', el.x);
+  setLenInput('prop-y', el.y);
+  setLenInput('prop-w', el.w);
+  setLenInput('prop-h', el.h);
   $('prop-fill').value = el.fill === 'transparent' ? '#FFFFFF' : el.fill;
   $('prop-fillOpacity').value = el.fillOpacity != null ? el.fillOpacity : 100;
   $('prop-stroke').value = el.stroke;
@@ -1786,12 +3011,54 @@ function updateProps() {
   $('prop-tb-rot').value = el.rotation || 0;
 }
 
+function syncElementDOM(id) {
+  var d = getEl(id);
+  var de = document.querySelector('.canvas-element[data-id="' + id + '"]');
+  if (!d || !de) return;
+  var el = d.el;
+  if (el.type === 'line') {
+    var minX = Math.min(el.x, el.x2);
+    var minY = Math.min(el.y, el.y2);
+    de.style.left = minX + 'px';
+    de.style.top = minY + 'px';
+    de.style.width = Math.max(Math.abs(el.x2 - el.x), 1) + 'px';
+    de.style.height = Math.max(Math.abs(el.y2 - el.y), 1) + 'px';
+    var svg = de.querySelector('svg');
+    if (svg) {
+      var ln = svg.querySelector('line');
+      if (ln) {
+        ln.setAttribute('x1', el.x - minX);
+        ln.setAttribute('y1', el.y - minY);
+        ln.setAttribute('x2', el.x2 - minX);
+        ln.setAttribute('y2', el.y2 - minY);
+      }
+    }
+  } else {
+    de.style.left = el.x + 'px';
+    de.style.top = el.y + 'px';
+    de.style.width = el.w + 'px';
+    de.style.height = el.h + 'px';
+    if (el.type !== 'text') {
+      de.style.background = el.fill || 'transparent';
+    }
+    /* Keep a replaced image in sync with the data model ("Change Image"). */
+    if (el.type === 'image') {
+      var simg = de.querySelector('img');
+      if (simg && el.src && simg.getAttribute('src') !== el.src) simg.setAttribute('src', el.src);
+    }
+    de.style.border = el.strokeWidth > 0 ? el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity) : 'none';
+    de.style.borderRadius = el.radius + 'px';
+    if (el.rotation) de.style.transform = 'rotate(' + el.rotation + 'deg)';
+    de.style.opacity = (el.opacity / 100);
+  }
+}
+
 function bindProps() {
   var map = [
-    { id: 'prop-x', prop: 'x', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-y', prop: 'y', parse: function(v) { return parseInt(v) || 0; } },
-    { id: 'prop-w', prop: 'w', parse: function(v) { return parseInt(v) || 10; } },
-    { id: 'prop-h', prop: 'h', parse: function(v) { return parseInt(v) || 10; } },
+    { id: 'prop-x', prop: 'x', len: true, dflt: 0 },
+    { id: 'prop-y', prop: 'y', len: true, dflt: 0 },
+    { id: 'prop-w', prop: 'w', len: true, dflt: 10 },
+    { id: 'prop-h', prop: 'h', len: true, dflt: 10 },
     { id: 'prop-fill', prop: 'fill', sync: 'prop-tb-fill' },
     { id: 'prop-fillOpacity', prop: 'fillOpacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-fillOpacity' },
     { id: 'prop-stroke', prop: 'stroke', sync: 'prop-tb-stroke' },
@@ -1801,6 +3068,9 @@ function bindProps() {
     { id: 'prop-radius', prop: 'radius', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-radius' },
     { id: 'prop-rot', prop: 'rotation', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-tb-rot' },
     { id: 'prop-tb-rot', prop: 'rotation', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-rot' },
+    /* Line endpoint coordinates */
+    { id: 'prop-x2', prop: 'x2', len: true, dflt: 0 },
+    { id: 'prop-y2', prop: 'y2', len: true, dflt: 0 },
     /* Text box style (mirrors general style — same data fields) */
     { id: 'prop-tb-fill', prop: 'fill', sync: 'prop-fill' },
     { id: 'prop-tb-fillOpacity', prop: 'fillOpacity', parse: function(v) { return parseInt(v) || 0; }, sync: 'prop-fillOpacity' },
@@ -1814,14 +3084,36 @@ function bindProps() {
     var el = $(m.id);
     if (!el) return;
     el.addEventListener('input', function() {
-      var v = m.parse ? m.parse(this.value) : this.value;
+      if (state.readOnly) return;
+      var v = m.len ? Math.round(parseLenInput(this.value, m.dflt)) : (m.parse ? m.parse(this.value) : this.value);
       if (m.sync) {
         var s = $(m.sync);
         if (s) s.value = v;
       }
       var patch = {};
       patch[m.prop] = v;
-      state.selectedElements.forEach(function(id) { updEl(id, patch); });
+      /* Aspect lock (§26): typing a width or height on a locked image drives the
+         other dimension. Ratios are captured before the edit so the first value
+         is not already overwritten. */
+      var ratios = null;
+      if (m.prop === 'w' || m.prop === 'h') {
+        ratios = {};
+        state.selectedElements.forEach(function(id) {
+          var g = getEl(id);
+          if (g && g.el.type === 'image' && g.el.lockAspect !== false && g.el.h > 0) {
+            ratios[id] = g.el.w / g.el.h;
+          }
+        });
+      }
+      state.selectedElements.forEach(function(id) {
+        updEl(id, patch);
+        if (ratios && ratios[id]) {
+          var g2 = getEl(id);
+          if (m.prop === 'w') updEl(id, { h: Math.max(1, Math.round(g2.el.w / ratios[id])) });
+          else updEl(id, { w: Math.max(1, Math.round(g2.el.h * ratios[id])) });
+        }
+        syncElementDOM(id);
+      });
       updateProps();
     });
   });
@@ -1845,18 +3137,21 @@ function bindProps() {
 
     /* Input: sync rich text to data model and canvas DOM directly — no full page rebuild */
     tc.addEventListener('input', function() {
+      if (state.readOnly) return;
       var val = this.innerHTML;
       var plain = val.replace(/<[^>]*>/g, '');
       state.selectedElements.forEach(function(id) {
         var d = getEl(id);
         if (d) { d.el.text = plain; d.el.richText = val; }
         var dom = document.querySelector('.canvas-element[data-id="' + id + '"]');
-        if (dom) dom.innerHTML = val;
+        var content = getContentEl(dom);
+        if (content) content.innerHTML = val;
       });
       clearTimeout(textEditTimer);
       textEditTimer = setTimeout(function() { saveSnapshot(); }, 800);
     });
     tc.addEventListener('blur', function() {
+      if (state.readOnly) return;
       clearTimeout(textEditTimer);
       saveSnapshot();
     });
@@ -1872,6 +3167,7 @@ function bindProps() {
     if (!el) return;
     var prop = selMap[id];
     el.addEventListener('change', function() {
+      if (state.readOnly) return;
       if (!applyInlineFormat(id, this.value)) {
         var patch = {};
         patch[prop] = this.value;
@@ -1883,6 +3179,7 @@ function bindProps() {
   var fs = $('prop-fs');
   if (fs) {
     fs.addEventListener('input', function() {
+      if (state.readOnly) return;
       var val = parseInt(this.value) || 16;
       if (!applyInlineFormat('prop-fs', val)) {
         state.selectedElements.forEach(function(id) { updEl(id, { fontSize: val }); });
@@ -1893,6 +3190,7 @@ function bindProps() {
   var tcl = $('prop-tc');
   if (tcl) {
     tcl.addEventListener('input', function() {
+      if (state.readOnly) return;
       var val = this.value;
       if (!applyInlineFormat('prop-tc', val)) {
         state.selectedElements.forEach(function(id) { updEl(id, { textColor: val }); });
@@ -1902,6 +3200,8 @@ function bindProps() {
 
   /* Returns true if inline format was applied to a selection, false if no selection */
   function applyInlineFormat(field, value) {
+    /* During inline canvas editing, fall through to element-wide property update */
+    if (state.editingElementId) return false;
     var tc = $('prop-text-content');
     if (!tc || !savedRange) return false;
     tc.focus();
@@ -1931,7 +3231,8 @@ function bindProps() {
       var d = getEl(id);
       if (d) { d.el.text = plain; d.el.richText = val; }
       var dom = document.querySelector('.canvas-element[data-id="' + id + '"]');
-      if (dom) dom.innerHTML = val;
+      var content = getContentEl(dom);
+      if (content) content.innerHTML = val;
     });
     saveSnapshot();
     /* Restore selection for continued editing */
@@ -1957,17 +3258,24 @@ function bindProps() {
   /* New spacing bindings */
   [{ id: 'prop-lh', prop: 'lineHeight' },
    { id: 'prop-ls', prop: 'letterSpacing' },
-   { id: 'prop-pad', prop: 'padding' },
-   { id: 'prop-ps', prop: 'paraSpacing' },
-   { id: 'prop-ti', prop: 'textIndent' },
+   { id: 'prop-pad', prop: 'padding', len: true, dflt: 8 },
+   { id: 'prop-ps', prop: 'paraSpacing', len: true, dflt: 0 },
+   { id: 'prop-ti', prop: 'textIndent', len: true, dflt: 0 },
    { id: 'prop-cc', prop: 'columnCount' },
-   { id: 'prop-cg', prop: 'columnGap' },
-   { id: 'prop-minh', prop: 'minH' },
-   { id: 'prop-maxh', prop: 'maxH' }].forEach(function(m) {
+   { id: 'prop-cg', prop: 'columnGap', len: true, dflt: 20 },
+   { id: 'prop-minh', prop: 'minH', len: true, dflt: 0 },
+   { id: 'prop-maxh', prop: 'maxH', len: true, dflt: 0 }].forEach(function(m) {
     var el = $(m.id);
     if (!el) return;
     el.addEventListener('input', function() {
-      var v = parseFloat(this.value); if (isNaN(v)) v = (m.prop === 'lineHeight' ? 1.5 : m.prop === 'padding' ? 8 : m.prop === 'columnGap' ? 20 : m.prop === 'columnCount' ? 1 : 0);
+      if (state.readOnly) return;
+      var v;
+      if (m.len) {
+        v = parseLenInput(this.value, m.dflt);
+      } else {
+        v = parseFloat(this.value);
+        if (isNaN(v)) v = (m.prop === 'lineHeight' ? 1.5 : m.prop === 'columnCount' ? 1 : 0);
+      }
       var patch = {};
       patch[m.prop] = v;
       state.selectedElements.forEach(function(id) { updEl(id, patch); });
@@ -1981,6 +3289,7 @@ function bindProps() {
     var el = $(m.id);
     if (!el) return;
     el.addEventListener('change', function() {
+      if (state.readOnly) return;
       var patch = {};
       patch[m.prop] = this.value;
       state.selectedElements.forEach(function(id) { updEl(id, patch); });
@@ -1991,6 +3300,7 @@ function bindProps() {
   var ar = $('prop-ar');
   if (ar) {
     ar.addEventListener('change', function() {
+      if (state.readOnly) return;
       var val = this.checked;
       state.selectedElements.forEach(function(id) { updEl(id, { autoResize: val }); });
       var ex = $('prop-ar-extra'); if (ex) ex.style.display = val ? 'flex' : 'none';
@@ -2003,6 +3313,7 @@ function bindProps() {
     var cb = $(m.id);
     if (!cb) return;
     cb.addEventListener('change', function() {
+      if (state.readOnly) return;
       var val = this.checked;
       var p = {}; p[m.prop] = val;
       state.selectedElements.forEach(function(id) { updEl(id, p); });
@@ -2012,22 +3323,119 @@ function bindProps() {
   var imb = $('prop-image-btn');
   if (imb) {
     imb.addEventListener('click', function() {
+      if (state.readOnly) return;
       var f = $('image-file-input');
       if (f) f.click();
+    });
+  }
+
+  /* Image aspect lock (§26). Applies to image elements only; it is a resize
+     constraint, so it never changes geometry on its own. */
+  var ila = $('prop-image-lockaspect');
+  if (ila) {
+    ila.addEventListener('change', function() {
+      if (state.readOnly) return;
+      var val = this.checked;
+      state.selectedElements.forEach(function(id) {
+        var g = getEl(id);
+        if (g && g.el.type === 'image') updEl(id, { lockAspect: val });
+      });
+    });
+  }
+
+  /* Reset an image element's box back to the source image's natural ratio (§27).
+     Geometry only — it deliberately does not touch the `lockAspect` flag. */
+  var irr = $('prop-image-reset-ratio');
+  if (irr) {
+    irr.addEventListener('click', function() {
+      if (state.readOnly) return;
+      var ids = state.selectedElements.filter(function(id) {
+        var g = getEl(id);
+        return !!g && g.el.type === 'image';
+      });
+      if (!ids.length) return;
+      var left = ids.length, changed = false, failed = false;
+      ids.forEach(function(id) {
+        var g = getEl(id);
+        naturalImageSize(id, g.el.src, function(nw, nh) {
+          var fit = naturalFitBox(g.el, nw, nh);
+          if (!fit) failed = true;
+          else if (fit.w !== g.el.w || fit.h !== g.el.h) {
+            updEl(id, fit);
+            syncElementDOM(id);
+            changed = true;
+          }
+          if (--left > 0) return;
+          if (failed) showToast('Could not read the image dimensions.', 'error');
+          else if (!changed) showToast('Already at the original aspect ratio.');
+          if (changed) { saveSnapshot(); emit(); }
+        });
+      });
     });
   }
 
   var imf = $('image-file-input');
   if (imf) {
     imf.addEventListener('change', function() {
+      if (state.readOnly) return;
       if (this.files && this.files[0]) {
         var r = new FileReader();
         r.onload = function(e) {
-          state.selectedElements.forEach(function(id) { updEl(id, { src: e.target.result }); });
+          var src = e.target.result;
+          /* Probe the replacement so locked elements can adopt its aspect ratio (§26). */
+          var probe = new Image();
+          probe.onload = function() {
+            var nw = probe.naturalWidth || probe.width, nh = probe.naturalHeight || probe.height;
+            state.selectedElements.forEach(function(id) {
+              var g = getEl(id);
+              if (!g || g.el.type !== 'image') return;
+              var patch = { src: src };
+              if (g.el.lockAspect !== false) {
+                /* Keep the element's current longest side; adopt the new ratio. */
+                var fit = naturalFitBox(g.el, nw, nh);
+                if (fit) { patch.w = fit.w; patch.h = fit.h; }
+              }
+              updEl(id, patch);
+              syncElementDOM(id);
+            });
+            updateProps();
+          };
+          probe.onerror = function() {
+            showToast('Failed to load image. The file may be corrupted.', 'error');
+          };
+          probe.src = src;
         };
         r.readAsDataURL(this.files[0]);
       }
       this.value = '';
+    });
+  }
+}
+
+/* --------------- Shape alignment panel (Properties ▸ Alignment) --------------- */
+function bindAlign() {
+  /* Target is a per-browser view preference (like snapping, §28), not document
+     data: it is not saved with the project and is not undoable. */
+  try {
+    var saved = localStorage.getItem('lp-align-target');
+    if (ALIGN_TARGETS.indexOf(saved) !== -1) state.alignTarget = saved;
+  } catch (e) {}
+  var sel = $('prop-align-target');
+  if (sel) {
+    sel.value = state.alignTarget;
+    sel.addEventListener('change', function() {
+      if (ALIGN_TARGETS.indexOf(this.value) === -1) return;
+      state.alignTarget = this.value;
+      try { localStorage.setItem('lp-align-target', this.value); } catch (e) {}
+    });
+  }
+  var grid = $('prop-align-grid');
+  if (grid) {
+    grid.addEventListener('click', function(e) {
+      if (state.readOnly) return;
+      var btn = e.target && e.target.closest ? e.target.closest('[data-align]') : null;
+      if (!btn || !grid.contains(btn)) return;
+      alignSelection(btn.dataset.align, state.alignTarget);
     });
   }
 }
@@ -2318,6 +3726,7 @@ function updateStatusPage() {
 function refresh() {
   updatePageDimensions();
   renderGrid();
+  renderGuides();
   renderRulers();
   renderPage();
   applyAutoResize();
@@ -2391,36 +3800,36 @@ function bindToolbar() {
 
   /* New project */
   $('btn-new').addEventListener('click', function() {
+    if (state.readOnly) return;
     var hasContent = state.pages.some(function(p) { return p.elements.length > 0; });
     if (hasContent && !confirm('Start a new project? Any unsaved changes will be lost.')) return;
-    state.pages = [{ id: 'pg1', name: 'Page 1', elements: [], pw: PW, ph: PH }];
-    state.currentPage = 'pg1';
+    state.project = mkProject();
+    state.pages = [mkPage(0)];
+    state.currentPageIndex = 0;
     state.selectedElements = [];
     state.undoStack = [JSON.stringify(state.pages)];
     state.redoStack = [];
     state.zoom = 1;
     state.panX = 0;
     state.panY = 0;
+    clampPan();
     applyTransform();
     refresh();
-    updatePageList();
+    save();
     showToast('New project created');
   });
 
-  /* Save project as .json */
+  /* Save — starts native auto-save the first time, else downloads a backup */
   $('btn-save').addEventListener('click', function() {
-    var data = { pages: state.pages, currentPage: state.currentPage, zoom: state.zoom, panX: state.panX, panY: state.panY };
-    var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    var a = document.createElement('a');
-    a.download = 'layout-project.json';
-    a.href = URL.createObjectURL(blob);
-    a.click();
-    URL.revokeObjectURL(a.href);
-    showToast('Project saved');
+    if (state.readOnly) return;
+    if (state.autoSaveFileHandle) { downloadSaveFile(); return; }
+    if (fsApiSupported()) { startAutoSave(); }
+    else { downloadSaveFile(); }
   });
 
   /* Import project from .json */
   $('btn-import').addEventListener('click', function() {
+    if (state.readOnly) return;
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
@@ -2430,24 +3839,28 @@ function bindToolbar() {
       var reader = new FileReader();
       reader.onload = function(e) {
         try {
-          var d = JSON.parse(e.target.result);
-          if (d.pages) state.pages = d.pages;
-          if (d.currentPage) state.currentPage = d.currentPage;
+          var d = normalizeProject(JSON.parse(e.target.result));
+          if (!d) { showToast('Invalid project file: no pages found', 'error'); return; }
+          state.project = d.project;
+          state.pages = d.pages;
+          if (typeof d.idx === 'number') state.currentPageIndex = d.idx;
+          else if (d.currentPage) {
+            var ci = state.pages.findIndex(function(p) { return p.id === d.currentPage; });
+            if (ci >= 0) state.currentPageIndex = ci;
+          }
           if (typeof d.zoom === 'number') state.zoom = d.zoom;
           if (typeof d.panX === 'number') state.panX = d.panX;
           if (typeof d.panY === 'number') state.panY = d.panY;
           state.selectedElements = [];
           state.undoStack = [JSON.stringify(state.pages)];
           state.redoStack = [];
-          /* Migrate pages missing dimensions */
-          state.pages.forEach(function(pg) { if (!pg.pw) pg.pw = PW; if (!pg.ph) pg.ph = PH; });
-          /* Ensure valid currentPage */
-          if (!state.pages.some(function(p) { return p.id === state.currentPage; })) {
-            state.currentPage = state.pages[0] ? state.pages[0].id : 'pg1';
-          }
+          /* Ensure valid current page index */
+          if (state.currentPageIndex >= state.pages.length || state.currentPageIndex < 0) state.currentPageIndex = 0;
+          clampPan();
           applyTransform();
           refresh();
-          updatePageList();
+          renderPages();
+          save();
           showToast('Project imported');
         } catch(err) {
           showToast('Invalid project file: ' + err.message, 'error');
@@ -2483,10 +3896,14 @@ function bindToolbar() {
     localStorage.setItem('lp-show-grid', state.showGrid ? '1' : '0');
     this.classList.toggle('active', state.showGrid);
   });
+  $('snap-toggle').addEventListener('click', function() {
+    setSnapEnabled(!state.snapEnabled);
+  });
   $('reset-view').addEventListener('click', function() {
     state.zoom = 1;
     state.panX = 0;
     state.panY = 0;
+    clampPan();
     applyTransform();
   });
 
@@ -2513,6 +3930,14 @@ function bindToolbar() {
     try { exportPDF(); } catch (err) { showToast('PDF export failed: ' + err.message, 'error'); }
   });
 
+  $('png-btn').addEventListener('click', function() {
+    try { exportRaster('png'); } catch (err) { showToast('PNG export failed: ' + err.message, 'error'); }
+  });
+
+  $('jpeg-btn').addEventListener('click', function() {
+    try { exportRaster('jpeg'); } catch (err) { showToast('JPEG export failed: ' + err.message, 'error'); }
+  });
+
   /* Tabs */
   document.querySelectorAll('.tab-btn').forEach(function(b) {
     b.addEventListener('click', function() {
@@ -2537,37 +3962,322 @@ function renderRulers() {
   v.innerHTML = '';
   var p = cpage();
   var pw = p ? (p.pw || PW) : PW, ph = p ? (p.ph || PH) : PH;
-  var i;
-  for (i = 0; i <= pw; i += GRID) {
+  var u = units();
+  var major = rulerMajorPx(u);
+  var minor = Math.max(2, gridSpacing());
+  var i, k;
+
+  /* Horizontal: minor ticks every grid-spacing px, labelled major ticks at round unit values */
+  for (i = 0; i <= pw; i += minor) {
     var m = document.createElement('div');
     m.className = 'ruler-mark';
     m.style.left = i + 'px';
-    m.style.top = (i % 50 === 0 ? '12px' : '18px');
+    m.style.top = '18px';
     m.style.width = '1px';
-    m.style.height = (i % 50 === 0 ? '12px' : '6px');
+    m.style.height = '6px';
     h.appendChild(m);
-    if (i % 100 === 0) {
-      var l = document.createElement('span');
-      l.style.cssText = 'position:absolute;top:0;left:' + i + 'px;font-size:12px;color:var(--color-text-disabled);transform:translateX(-50%)';
-      l.textContent = i;
-      h.appendChild(l);
-    }
   }
-  for (i = 0; i <= ph; i += GRID) {
+  for (k = 0; k * major <= pw; k++) {
+    var x = k * major;
+    var mj = document.createElement('div');
+    mj.className = 'ruler-mark';
+    mj.style.left = x + 'px';
+    mj.style.top = '12px';
+    mj.style.width = '1px';
+    mj.style.height = '12px';
+    h.appendChild(mj);
+    var l = document.createElement('span');
+    l.style.cssText = 'position:absolute;top:0;left:' + x + 'px;font-size:12px;color:var(--color-text-disabled);transform:translateX(-50%)';
+    l.textContent = fmtNum(x, u);
+    h.appendChild(l);
+  }
+
+  /* Vertical */
+  for (i = 0; i <= ph; i += minor) {
     var m2 = document.createElement('div');
     m2.className = 'ruler-mark';
     m2.style.top = i + 'px';
-    m2.style.left = (i % 50 === 0 ? '12px' : '18px');
-    m2.style.width = (i % 50 === 0 ? '12px' : '6px');
+    m2.style.left = '18px';
+    m2.style.width = '6px';
     m2.style.height = '1px';
     v.appendChild(m2);
-    if (i % 100 === 0) {
-      var l2 = document.createElement('span');
-      l2.style.cssText = 'position:absolute;left:0;top:' + i + 'px;font-size:12px;color:var(--color-text-disabled);transform:translateY(-50%)';
-      l2.textContent = i;
-      v.appendChild(l2);
-    }
   }
+  for (k = 0; k * major <= ph; k++) {
+    var y = k * major;
+    var mj2 = document.createElement('div');
+    mj2.className = 'ruler-mark';
+    mj2.style.top = y + 'px';
+    mj2.style.left = '12px';
+    mj2.style.width = '12px';
+    mj2.style.height = '1px';
+    v.appendChild(mj2);
+    var l2 = document.createElement('span');
+    l2.style.cssText = 'position:absolute;left:0;top:' + y + 'px;font-size:12px;color:var(--color-text-disabled);transform:translateY(-50%)';
+    l2.textContent = fmtNum(y, u);
+    v.appendChild(l2);
+  }
+}
+
+/* --------------- Document / Page property editing --------------- */
+/* Distance in px that corresponds to a round value in the current unit. */
+function rulerMajorPx(u) {
+  switch (u) {
+    case 'in': return PX_PER_IN;              /* 1 in */
+    case 'cm': return PX_PER_IN / 2.54;       /* 1 cm */
+    case 'mm': return PX_PER_IN / 25.4 * 10;  /* 10 mm */
+    case 'pt': return PX_PER_IN / 72 * 12;    /* 12 pt */
+    case 'pc': return PX_PER_IN / 6;          /* 1 pc */
+    default:   return 100;                    /* 100 px */
+  }
+}
+
+/* Commit a page-level (undoable) change: snapshot before mutating. */
+function commitPage(mutate) {
+  var pg = cpage();
+  if (!pg) return;
+  saveSnapshot();
+  mutate(pg);
+  emit();
+}
+
+/* Commit a project-level (non-undoable) change: persist via autosave only. */
+function commitProject(mutate) {
+  if (!state.project) return;
+  markProjectDirty();
+  mutate(state.project);
+  emit();
+}
+
+function setPageSize(w, h, presetName) {
+  var pg = cpage();
+  if (!pg) return;
+  if (!(w > 0) || !(h > 0)) { updateProps(); return; }
+  saveSnapshot();
+  pg.pw = w;
+  pg.ph = h;
+  pg.preset = presetName || 'custom';
+  pg.orientation = w > h ? 'landscape' : 'portrait';
+  clampPan();
+  emit();
+}
+
+function setOrientation(o) {
+  var pg = cpage();
+  if (!pg || o === pg.orientation) return;
+  var w, h;
+  if (pg.preset && PAGE_PRESETS[pg.preset]) {
+    var pr = PAGE_PRESETS[pg.preset];
+    w = pr.w; h = pr.h;
+    if (o === 'landscape') { var t = w; w = h; h = t; }
+  } else {
+    w = pg.ph; h = pg.pw; /* swap custom dimensions */
+  }
+  saveSnapshot();
+  pg.orientation = o;
+  pg.pw = w;
+  pg.ph = h;
+  clampPan();
+  emit();
+}
+
+function setMargin(side, val) {
+  var pg = cpage();
+  if (!pg) return;
+  val = Math.max(0, val);
+  var m = { top: pg.margins.top, right: pg.margins.right, bottom: pg.margins.bottom, left: pg.margins.left };
+  m[side] = val;
+  if (m.left + m.right > pg.pw - 20 || m.top + m.bottom > pg.ph - 20) {
+    showToast('Margins exceed the page size', 'error');
+    updateProps();
+    return;
+  }
+  saveSnapshot();
+  pg.margins[side] = val;
+  emit();
+}
+
+function setColumns(n) {
+  var pg = cpage();
+  if (!pg) return;
+  n = Math.max(1, Math.min(12, Math.round(n) || 1));
+  saveSnapshot();
+  pg.columns = n;
+  emit();
+}
+
+function setGutter(v) {
+  var pg = cpage();
+  if (!pg) return;
+  v = Math.max(0, v);
+  var c = contentRect(pg);
+  if (pg.columns > 1 && v * (pg.columns - 1) >= c.w) {
+    showToast('Gutter is too large for the current columns', 'error');
+    updateProps();
+    return;
+  }
+  saveSnapshot();
+  pg.gutter = v;
+  emit();
+}
+
+function bindDocProps() {
+  function num(id, unitBased) {
+    var el = $(id);
+    if (!el) return 0;
+    return unitBased ? parseUnit(el.value, units()) : parseFloat(el.value);
+  }
+
+  /* Live guide preview while typing: render guides from a throwaway copy of the
+     page so `state.pages` (and therefore the undo stack) is not touched. The
+     `change` handler still performs the real, snapshot-backed commit. */
+  function previewGuides(mutate) {
+    if (state.readOnly) return;
+    var pg = cpage();
+    if (!pg) return;
+    var copy = JSON.parse(JSON.stringify(pg));
+    mutate(copy);
+    renderGuides(copy);
+  }
+
+  var wEl = $('prop-doc-w'), hEl = $('prop-doc-h');
+  function commitSize() { setPageSize(num('prop-doc-w', true), num('prop-doc-h', true)); }
+  if (wEl) wEl.addEventListener('change', function() { if (!state.readOnly) commitSize(); });
+  if (hEl) hEl.addEventListener('change', function() { if (!state.readOnly) commitSize(); });
+
+  var ori = $('prop-doc-ori');
+  if (ori) ori.addEventListener('change', function() { if (!state.readOnly) setOrientation(this.value); });
+
+  var preset = $('prop-doc-preset');
+  if (preset) preset.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var name = this.value, pg = cpage();
+    if (!pg) return;
+    if (name === 'custom') { saveSnapshot(); pg.preset = 'custom'; emit(); return; }
+    var pr = PAGE_PRESETS[name];
+    if (!pr) return;
+    var w = pr.w, h = pr.h;
+    if (pg.orientation === 'landscape') { var t = w; w = h; h = t; }
+    setPageSize(w, h, name);
+  });
+
+  [['prop-doc-mt', 'top'], ['prop-doc-mr', 'right'], ['prop-doc-mb', 'bottom'], ['prop-doc-ml', 'left']].forEach(function(pair) {
+    var el = $(pair[0]);
+    if (!el) return;
+    el.addEventListener('input', function() { previewGuides(function(c) { c.margins[pair[1]] = Math.max(0, num(pair[0], true)); }); });
+    el.addEventListener('change', function() { if (!state.readOnly) setMargin(pair[1], num(pair[0], true)); });
+  });
+
+  var cols = $('prop-doc-cols');
+  if (cols) {
+    cols.addEventListener('input', function() { var n = parseInt(this.value) || 1; previewGuides(function(c) { c.columns = Math.max(1, Math.min(12, n)); }); });
+    cols.addEventListener('change', function() { if (!state.readOnly) setColumns(parseInt(this.value) || 1); });
+  }
+
+  var gut = $('prop-doc-gutter');
+  if (gut) {
+    gut.addEventListener('input', function() { previewGuides(function(c) { c.gutter = Math.max(0, num('prop-doc-gutter', true)); }); });
+    gut.addEventListener('change', function() { if (!state.readOnly) setGutter(num('prop-doc-gutter', true)); });
+  }
+
+  var bl = $('prop-doc-bleed');
+  if (bl) {
+    bl.addEventListener('input', function() { previewGuides(function(c) { c.bleed = Math.max(0, num('prop-doc-bleed', true)); }); });
+    bl.addEventListener('change', function() { if (!state.readOnly) commitPage(function(pg) { pg.bleed = Math.max(0, num('prop-doc-bleed', true)); }); });
+  }
+
+  var sl = $('prop-doc-slug');
+  if (sl) sl.addEventListener('change', function() { if (!state.readOnly) commitPage(function(pg) { pg.slug = Math.max(0, num('prop-doc-slug', true)); }); });
+
+  var exBleed = $('prop-doc-exportbleed');
+  if (exBleed) exBleed.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var on = this.checked;
+    commitProject(function(pr) { pr.export.includeBleed = on; });
+  });
+
+  var sg = $('prop-doc-showguides');
+  if (sg) sg.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var on = this.checked;
+    commitPage(function(pg) { pg.showGuides = on; });
+  });
+
+  var unitsSel = $('prop-doc-units');
+  if (unitsSel) unitsSel.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var u = this.value;
+    if (!UNITS[u]) u = 'px';
+    commitProject(function(pr) {
+      /* Re-express the grid step in the new unit so the grid overlay (and the
+         ruler minor ticks that follow it) line up with the ruler graduations.
+         See §29. */
+      pr.grid.spacing = snapLenToUnit(parseFloat(pr.grid.spacing), u);
+      pr.grid.baseline = snapLenToUnit(parseFloat(pr.grid.baseline), u);
+      pr.units = u;
+    });
+  });
+
+  var dpi = $('prop-doc-dpi');
+  if (dpi) dpi.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var v = Math.max(36, Math.min(1200, parseInt(this.value) || 300));
+    commitProject(function(pr) { pr.dpi = v; });
+  });
+
+  var gridSp = $('prop-doc-grid');
+  if (gridSp) gridSp.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var v = Math.max(1, num('prop-doc-grid', true));
+    commitProject(function(pr) { pr.grid.spacing = v; });
+  });
+
+  var gridSub = $('prop-doc-gridsub');
+  if (gridSub) gridSub.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var v = Math.max(1, Math.min(50, parseInt(this.value) || 1));
+    commitProject(function(pr) { pr.grid.subdivisions = v; });
+  });
+
+  var baseEl = $('prop-doc-baseline');
+  if (baseEl) baseEl.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var v = Math.max(0, num('prop-doc-baseline', true));
+    commitProject(function(pr) { pr.grid.baseline = v; });
+  });
+
+  var showBase = $('prop-doc-showbaseline');
+  if (showBase) showBase.addEventListener('change', function() {
+    if (state.readOnly) return;
+    var on = this.checked;
+    commitProject(function(pr) { pr.grid.showBaseline = on; });
+  });
+
+  [['prop-doc-g-margins', 'showMargins'], ['prop-doc-g-cols', 'showColumns'], ['prop-doc-g-bleed', 'showBleed'], ['prop-doc-g-snap', 'snapToGuides']].forEach(function(pair) {
+    var el = $(pair[0]);
+    if (!el) return;
+    el.addEventListener('change', function() {
+      if (state.readOnly) return;
+      var on = this.checked, key = pair[1];
+      commitProject(function(pr) { pr.guides[key] = on; });
+    });
+  });
+
+  var applyAll = $('prop-doc-apply-all');
+  if (applyAll) applyAll.addEventListener('click', function() {
+    if (state.readOnly) return;
+    var pg = cpage();
+    if (!pg) return;
+    saveSnapshot();
+    state.pages.forEach(function(p) {
+      p.pw = pg.pw;
+      p.ph = pg.ph;
+      p.orientation = pg.orientation;
+      p.preset = pg.preset;
+    });
+    clampPan();
+    emit();
+    showToast('Page size applied to all pages');
+  });
 }
 
 /* --------------- Selection Handles --------------- */
@@ -2578,6 +4288,16 @@ function showHandles() {
   state.selectedElements.forEach(function(id) {
     var d = ct.querySelector('[data-id="' + id + '"]');
     if (!d) return;
+    /* Hide resize handles while a text box is being inline-edited — matches
+       standard editors (Google Slides etc.). Handles are siblings of the
+       .el-content node, so they can never leak into the editable content. */
+    if (id === state.editingElementId) return;
+    var elData = getEl(id);
+    if (!elData) return;
+    if (elData.el.type === 'line') {
+      /* Lines show no resize handles — they are endpoint-defined, not box-defined */
+      return;
+    }
     ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(function(p) {
       var h = document.createElement('div');
       h.className = 'resize-handle ' + p;
@@ -2600,6 +4320,19 @@ function hideHandles() {
 function hitTest(el, x, y) {
   /* For rotated elements, the AABB is a rough approximation.
      Use the DOM's elementFromPoint for accurate hit testing. */
+  if (el.type === 'line') {
+    /* Distance to line segment (x,y)-(x2,y2) */
+    var lx1 = el.x, ly1 = el.y, lx2 = el.x2, ly2 = el.y2;
+    var dx = lx2 - lx1, dy = ly2 - ly1;
+    var lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) {
+      return Math.hypot(x - lx1, y - ly1) < 8;
+    }
+    var t = ((x - lx1) * dx + (y - ly1) * dy) / lenSq;
+    t = Math.max(0, Math.min(1, t));
+    var nearX = lx1 + t * dx, nearY = ly1 + t * dy;
+    return Math.hypot(x - nearX, y - nearY) < 8;
+  }
   if (el.rotation) {
     var ct = $('page-content');
     if (!ct) return false;
@@ -2609,6 +4342,13 @@ function hitTest(el, x, y) {
     return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h;
   }
   return x >= el.x && x <= el.x + el.w && y >= el.y && y <= el.y + el.h;
+}
+
+function hitEndpoint(el, x, y) {
+  if (el.type !== 'line') return null;
+  if (Math.hypot(x - el.x, y - el.y) < ENDPOINT_HIT_RADIUS) return 'start';
+  if (Math.hypot(x - el.x2, y - el.y2) < ENDPOINT_HIT_RADIUS) return 'end';
+  return null;
 }
 
 function findEl(x, y) {
@@ -2624,9 +4364,15 @@ function findEl(x, y) {
 }
 
 /* --------------- Interaction State --------------- */
+var ENDPOINT_HIT_RADIUS = 8;
 var dragging = false, dragStart = null, dragOrig = null, dragIds = null;
 var resizing = false, resizeDir = null, resizeOrig = null, resizeId = null, resizeStartPt = null;
 var drawing = false, drawPt = null, drawGhost = null;
+var endpointDragging = false, endpointSide = null, endpointLineId = null, endpointOrig = null;
+
+/* Inline editing state — double-click detection */
+var lastClickId = null, lastClickTime = 0;
+var DOUBLE_CLICK_MS = 300;
 
 /* --------------- Tools --------------- */
 var tNames = {
@@ -2647,6 +4393,8 @@ function updateStatus() {
 }
 
 function setTool(t) {
+  /* If in inline edit mode, exit before switching tool */
+  if (state.editingElementId) exitInlineEdit(true);
   state.tool = t;
   document.querySelectorAll('[data-tool]').forEach(function(b) {
     b.classList.toggle('active', b.dataset.tool === t);
@@ -2655,10 +4403,503 @@ function setTool(t) {
   updateStatus();
 }
 
+/* --------------- Inline Canvas Text Editing --------------- */
+/* The editing box (.canvas-element) itself. */
+function getEditingBox() {
+  var id = state.editingElementId;
+  if (!id) return null;
+  return document.querySelector('.canvas-element[data-id="' + id + '"]');
+}
+
+/* The editable content node (.el-content) inside the editing box.
+   Only this node ever receives contenteditable. */
+function getActiveEditable() {
+  return getContentEl(getEditingBox());
+}
+
+/* --------------- Inline selection preservation --------------- */
+/* Toolbar controls (selects, number/color inputs) steal focus from the editable,
+   which collapses the live DOM selection. Snapshot the last non-empty range
+   inside the active .el-content so commands still apply to what the user picked. */
+var inlineSavedRange = null;
+/* Last colour wrapper created by the colour picker — reused so live 'input'
+   events while the picker is open don't nest spans. */
+var inlineColorWrap = null;
+
+function captureInlineSelection() {
+  if (!state.editingElementId) return;
+  var content = getActiveEditable();
+  if (!content) return;
+  var sel = window.getSelection();
+  if (!sel.rangeCount) return;
+  var r = sel.getRangeAt(0);
+  if (!r || r.collapsed) return;
+  var anc = r.commonAncestorContainer;
+  if (content === anc || content.contains(anc)) inlineSavedRange = r.cloneRange();
+}
+
+function restoreInlineSelection(skipFocus) {
+  var content = getActiveEditable();
+  if (!content) return false;
+  /* skipFocus is used by toolbar selects/colour inputs: yanking focus out of an
+     open dropdown closes it, so those controls restore the range without focus. */
+  if (!skipFocus) content.focus();
+  var sel = window.getSelection();
+  var r = inlineSavedRange;
+  if (r) {
+    var anc = r.commonAncestorContainer;
+    if (content === anc || content.contains(anc)) {
+      sel.removeAllRanges();
+      sel.addRange(r);
+      return true;
+    }
+  }
+  if (sel.rangeCount) {
+    var cr = sel.getRangeAt(0);
+    var canc = cr.commonAncestorContainer;
+    if (content === canc || content.contains(canc)) return true;
+  }
+  return false;
+}
+
+/* Wrap a range's contents in an element; falls back to extract/insert when the
+   range crosses element boundaries (surroundContents throws on partial nodes). */
+function wrapInlineRange(range, wrapper) {
+  try {
+    range.surroundContents(wrapper);
+  } catch (err) {
+    var frag = range.extractContents();
+    wrapper.appendChild(frag);
+    range.insertNode(wrapper);
+  }
+  /* Always re-point the selection at the wrapper's contents. surroundContents()
+     is specified to do this, but Chromium leaves the range on the old container,
+     which makes captureInlineSelection() save a stale range and live re-styling
+     (e.g. dragging the colour picker) nest a new span each time. */
+  var sel = window.getSelection();
+  var nr = document.createRange();
+  nr.selectNodeContents(wrapper);
+  sel.removeAllRanges();
+  sel.addRange(nr);
+}
+
+/* Re-apply canonical text-box styles to a rendered box (and its .el-content).
+   Delegates to styleTextBox(), the same routine domEl() uses, so entering and
+   leaving edit mode produces zero visual change (pixel-perfect WYSIWYG). */
+function applyElementStyles(box, el) {
+  styleTextBox(box, getContentEl(box), el);
+}
+
+/* Clean up execCommand artifacts from rich text content */
+function normalizeRichText(el) {
+  if (!el.richText) return;
+  var html = el.richText;
+  /* Remove <font> tags, preserving any inline style */
+  html = html.replace(/<font\s*([^>]*)>/gi, function(m, attrs) {
+    var s = attrs.match(/style="([^"]*)"/i);
+    return s ? '<span style="' + s[1] + '">' : '<span>';
+  });
+  html = html.replace(/<\/font>/gi, '</span>');
+  /* Remove empty spans */
+  html = html.replace(/<span[^>]*><\/span>/gi, '');
+  /* Strip all dir attributes from inner content (set on outer element) */
+  html = html.replace(/\s+dir="[^"]*"/gi, '');
+  /* Ensure wrapped in block element for proper rendering */
+  if (!html.match(/^<(p|div|h\d|ul|ol|li)/i)) {
+    html = '<p>' + html + '<\/p>';
+  }
+  el.richText = html;
+  el.text = html.replace(/<[^>]*>/g, '');
+}
+
+/* Enter inline edit mode on a canvas text element */
+function enterInlineEdit(elementId) {
+  var d = getEl(elementId);
+  if (!d) return;
+  /* Exit any existing edit mode first */
+  exitInlineEdit(true);
+  state.editingElementId = elementId;
+  inlineSavedRange = null;
+  inlineColorWrap = null;
+  var box = document.querySelector('.canvas-element[data-id="' + elementId + '"]');
+  var content = getContentEl(box);
+  if (!box || !content) { state.editingElementId = null; return; }
+  /* Style box + content identically to domEl() (guarantees zero visual change) */
+  applyElementStyles(box, d.el);
+  content.innerHTML = d.el.richText || d.el.text;
+  content.setAttribute('contenteditable', 'true');
+  content.spellcheck = true;
+  content.style.pointerEvents = 'auto';
+  /* Disable resize handles during editing (standard editor behaviour) */
+  hideHandles();
+  /* Disable panel text editor to avoid sync conflicts */
+  var panelEditor = $('prop-text-content');
+  if (panelEditor) {
+    panelEditor.setAttribute('contenteditable', 'false');
+    panelEditor.style.opacity = '0.5';
+    panelEditor.style.pointerEvents = 'none';
+  }
+  /* Live input sync is handled by a delegated listener on #page-content
+     (see bindInlineToolbar) so it survives renderPage() rebuilding the DOM. */
+  /* Focus and place caret at end */
+  requestAnimationFrame(function() {
+    content.focus();
+    var range = document.createRange();
+    var sel = window.getSelection();
+    range.selectNodeContents(content);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  });
+  showInlineToolbar(box);
+  /* Refresh panels/status without re-rendering the canvas (a re-render here
+     would detach the node the user is editing and lose the caret). */
+  updateProps();
+}
+
+/* Exit inline edit mode, optionally saving changes */
+function exitInlineEdit(saveChanges) {
+  var id = state.editingElementId;
+  if (!id) return;
+  var box = document.querySelector('.canvas-element[data-id="' + id + '"]');
+  var content = getContentEl(box);
+  var elData = getEl(id);
+  /* Save changes to element data model */
+  if (saveChanges && content && elData) {
+    elData.el.richText = content.innerHTML;
+    elData.el.text = content.innerHTML.replace(/<[^>]*>/g, '');
+    saveSnapshot();
+    save();
+  }
+  /* Clean up content node — leave it visually identical to non-edit rendering */
+  if (content) {
+    content.removeAttribute('contenteditable');
+    content.spellcheck = false;
+    /* If not saving, restore original content from the data model */
+    if (elData && !saveChanges) {
+      content.innerHTML = elData.el.richText || elData.el.text;
+    }
+  }
+  /* Re-apply canonical styles so the box matches domEl() exactly */
+  if (box && elData) applyElementStyles(box, elData.el);
+  state.editingElementId = null;
+  inlineSavedRange = null;
+  inlineColorWrap = null;
+  /* Re-enable panel text editor */
+  var panelEditor = $('prop-text-content');
+  if (panelEditor) {
+    panelEditor.setAttribute('contenteditable', 'true');
+    panelEditor.style.opacity = '';
+    panelEditor.style.pointerEvents = '';
+  }
+  hideInlineToolbar();
+  /* Refresh handles, layers, props and status now that editing is over */
+  emit();
+}
+
+/* Persist the live contentEditable DOM back into the element data model.
+   getEl() returns { el, page } — the text fields live on the inner .el object. */
+function syncInlineToState(dom) {
+  if (!dom) dom = getActiveEditable();
+  if (!dom || !state.editingElementId) return;
+  var d = getEl(state.editingElementId);
+  if (d) {
+    d.el.richText = dom.innerHTML;
+    d.el.text = dom.innerHTML.replace(/<[^>]*>/g, '');
+  }
+}
+
+/* Called on every input event inside the active editable (via the delegated
+   listener bound in bindInlineToolbar). Syncs model, auto-resizes, autosaves. */
+function handleInlineInput() {
+  if (!state.editingElementId) return;
+  var content = getActiveEditable();
+  var d = getEl(state.editingElementId);
+  if (!content || !d) return;
+  d.el.richText = content.innerHTML;
+  d.el.text = content.innerHTML.replace(/<[^>]*>/g, '');
+  var box = getEditingBox();
+  if (box) handleAutoResize(box, d.el);
+  clearTimeout(state.editSaveTimer);
+  state.editSaveTimer = setTimeout(function() { saveSnapshot(); save(); }, 300);
+}
+
+/* Show and position the inline formatting toolbar above the editing element */
+function showInlineToolbar(dom) {
+  /* Accept either the box or its content node; always position relative to the box */
+  if (dom && dom.classList && dom.classList.contains('el-content') && dom.parentElement) dom = dom.parentElement;
+  var toolbar = $('inline-toolbar');
+  if (!toolbar) return;
+  /* Show off-screen first to measure dimensions */
+  toolbar.style.visibility = 'hidden';
+  toolbar.style.display = 'flex';
+  var toolbarWidth = toolbar.offsetWidth;
+  var toolbarHeight = toolbar.offsetHeight;
+  var elRect = dom.getBoundingClientRect();
+  var left = elRect.left + elRect.width / 2 - toolbarWidth / 2;
+  var top = elRect.top - toolbarHeight - 8;
+  if (top < 8) {
+    top = elRect.bottom + 8;
+    toolbar.classList.add('below');
+  } else {
+    toolbar.classList.remove('below');
+  }
+  left = Math.max(8, Math.min(left, window.innerWidth - toolbarWidth - 8));
+  toolbar.style.left = Math.round(left) + 'px';
+  toolbar.style.top = Math.round(top) + 'px';
+  toolbar.style.visibility = '';
+  updateInlineToolbarState();
+}
+
+function hideInlineToolbar() {
+  var toolbar = $('inline-toolbar');
+  if (toolbar) toolbar.style.display = 'none';
+}
+
+/* The node whose computed style represents the current caret/selection — used
+   to keep the toolbar controls showing the real style of the selected text. */
+function selectionStyleNode() {
+  var content = getActiveEditable();
+  if (!content) return null;
+  var sel = window.getSelection();
+  if (!sel.rangeCount) return content;
+  var node = sel.getRangeAt(0).startContainer;
+  if (node && node.nodeType === 3) node = node.parentNode;
+  if (!node || (node !== content && !content.contains(node))) return content;
+  return node;
+}
+
+function cssColorToHex(c) {
+  var m = String(c).match(/\d+/g);
+  if (!m || m.length < 3) return '#000000';
+  return '#' + m.slice(0, 3).map(function(x) {
+    var h = parseInt(x, 10).toString(16);
+    return h.length === 1 ? '0' + h : h;
+  }).join('');
+}
+
+/* Update toolbar button states to reflect current selection within editable */
+function updateInlineToolbarState() {
+  var dom = getActiveEditable();
+  if (!dom) return;
+  /* Don't steal focus from toolbar inputs/selects while the user is using them */
+  var active = document.activeElement;
+  if (active && active !== dom && !dom.contains(active) &&
+      active.closest && active.closest('#inline-toolbar')) return;
+  var toolbar = $('inline-toolbar');
+  if (!toolbar) return;
+  var fmtMap = {
+    'bold': 'bold', 'italic': 'italic', 'underline': 'underline',
+    'strikethrough': 'strikeThrough', 'superscript': 'superscript', 'subscript': 'subscript'
+  };
+  Object.keys(fmtMap).forEach(function(a) {
+    var btn = toolbar.querySelector('[data-action="' + a + '"]');
+    if (btn) btn.classList.toggle('active', document.queryCommandState(fmtMap[a]));
+  });
+  /* Sync the selects/inputs to the selected text's computed style so they show
+     what is actually there instead of their static HTML defaults. Skip a
+     control the user is currently interacting with. */
+  var node = selectionStyleNode();
+  if (node) {
+    var cs = window.getComputedStyle(node);
+    var fsInput = toolbar.querySelector('[data-action="fontSize"]');
+    if (fsInput && document.activeElement !== fsInput) {
+      fsInput.value = String(Math.round(parseFloat(cs.fontSize)) || 16);
+    }
+    var ffSelect = toolbar.querySelector('[data-action="fontName"]');
+    if (ffSelect && document.activeElement !== ffSelect) {
+      var want = cs.fontFamily.replace(/["']/g, '').toLowerCase();
+      var opts = ffSelect.options, matched = null, i;
+      for (i = 0; i < opts.length; i++) {
+        if (opts[i].value.replace(/["']/g, '').toLowerCase() === want) { matched = opts[i].value; break; }
+      }
+      if (!matched) {
+        var first = want.split(',')[0].trim();
+        for (i = 0; i < opts.length; i++) {
+          if (opts[i].value.replace(/["']/g, '').toLowerCase().split(',')[0].trim() === first) { matched = opts[i].value; break; }
+        }
+      }
+      if (matched) ffSelect.value = matched;
+    }
+    var fwSelect = toolbar.querySelector('[data-action="fontWeight"]');
+    if (fwSelect && document.activeElement !== fwSelect) {
+      var w = String(cs.fontWeight);
+      if (!fwSelect.querySelector('option[value="' + w + '"]')) {
+        var n = parseInt(w, 10);
+        w = isNaN(n) ? '400' : String(Math.max(100, Math.min(900, Math.round(n / 100) * 100)));
+      }
+      fwSelect.value = w;
+    }
+    var tcInput = toolbar.querySelector('[data-action="foreColor"]');
+    if (tcInput && document.activeElement !== tcInput) tcInput.value = cssColorToHex(cs.color);
+  }
+}
+
+/* Handle auto-resize during editing (grow/shrink box height to fit content) */
+function handleAutoResize(dom, el) {
+  if (!el.autoResize) return;
+  /* The box is border-box, so scrollHeight already includes padding */
+  var newH = dom.scrollHeight;
+  if (el.minH > 0) newH = Math.max(newH, el.minH);
+  if (el.maxH > 0) newH = Math.min(newH, el.maxH);
+  if (Math.abs(newH - el.h) > 1) {
+    el.h = newH;
+    dom.style.height = newH + 'px';
+    if (state.editingElementId) showInlineToolbar(dom);
+    saveSnapshot();
+    emit();
+  }
+}
+
+/* Bind event handlers to the inline formatting toolbar elements */
+function bindInlineToolbar() {
+  var toolbar = $('inline-toolbar');
+  if (!toolbar) return;
+  /* Action buttons: execCommand */
+  var actionMap = {
+    'bold': 'bold', 'italic': 'italic', 'underline': 'underline',
+    'strikethrough': 'strikeThrough', 'superscript': 'superscript', 'subscript': 'subscript',
+    'clearFormat': 'removeFormat',
+    'justifyLeft': 'justifyLeft', 'justifyCenter': 'justifyCenter', 'justifyRight': 'justifyRight',
+    'insertUnorderedList': 'insertUnorderedList', 'insertOrderedList': 'insertOrderedList'
+  };
+  /* Only <button>s: selects/inputs also carry data-action and must not run this
+     handler (its focus restore would close an open dropdown). */
+  toolbar.querySelectorAll('button[data-action]').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      var action = this.dataset.action;
+      if (action === 'done') { exitInlineEdit(true); return; }
+      var dom = getActiveEditable();
+      if (!dom || !dom.isContentEditable) return;
+      /* Re-apply to the user's selection (a control click may have stolen focus) */
+      restoreInlineSelection();
+      if (action === 'clearFormat') {
+        document.execCommand(actionMap[action], false, null);
+        document.execCommand('unlink', false, null);
+      } else if (actionMap[action]) {
+        document.execCommand(actionMap[action], false, null);
+      }
+      captureInlineSelection();
+      updateInlineToolbarState();
+      /* Sync back to state */
+      syncInlineToState(dom);
+    });
+  });
+  /* The controls below change a CSS property on the selected text. They wrap the
+     selection in a <span> and restore the range WITHOUT focusing the editable,
+     because focusing would close an open <select> dropdown / colour picker. */
+  function applyInlineStyle(prop, value) {
+    var dom = getActiveEditable();
+    if (!dom) return;
+    if (!restoreInlineSelection(true)) return;
+    var sel = window.getSelection();
+    if (!sel.rangeCount || !sel.toString()) return;
+    var wrap = document.createElement('span');
+    wrap.style[prop] = value;
+    wrapInlineRange(sel.getRangeAt(0), wrap);
+    captureInlineSelection();
+    syncInlineToState(dom);
+    /* Wrapping is programmatic, so no 'input' event fires — persist explicitly. */
+    saveSnapshot();
+    save();
+  }
+  /* Font size input */
+  var fsInput = toolbar.querySelector('[data-action="fontSize"]');
+  if (fsInput) {
+    fsInput.addEventListener('change', function() {
+      applyInlineStyle('fontSize', (parseInt(this.value) || 16) + 'px');
+    });
+  }
+  /* Font family select — span wrapping.
+     execCommand('fontName') silently does nothing for values containing spaces
+     or commas (e.g. "Georgia, serif"), which is every option in this control. */
+  var ffSelect = toolbar.querySelector('[data-action="fontName"]');
+  if (ffSelect) {
+    ffSelect.addEventListener('change', function() {
+      applyInlineStyle('fontFamily', this.value);
+    });
+  }
+  /* Font weight select */
+  var fwSelect = toolbar.querySelector('[data-action="fontWeight"]');
+  if (fwSelect) {
+    fwSelect.addEventListener('change', function() {
+      applyInlineStyle('fontWeight', this.value);
+    });
+  }
+  /* Text colour input — reuse the wrapper created by a previous pick so live
+     'input' events while the picker is open update it instead of nesting spans. */
+  var tcInput = toolbar.querySelector('[data-action="foreColor"]');
+  if (tcInput) {
+    tcInput.addEventListener('input', function() {
+      var dom = getActiveEditable();
+      if (!dom) return;
+      if (!restoreInlineSelection(true)) return;
+      var sel = window.getSelection();
+      if (!sel.rangeCount || !sel.toString()) return;
+      var anc = sel.getRangeAt(0).commonAncestorContainer;
+      if (inlineColorWrap && inlineColorWrap.isConnected &&
+          (inlineColorWrap === anc || inlineColorWrap.contains(anc))) {
+        inlineColorWrap.style.color = this.value;
+      } else {
+        var wrap = document.createElement('span');
+        wrap.style.color = this.value;
+        wrapInlineRange(sel.getRangeAt(0), wrap);
+        inlineColorWrap = wrap;
+      }
+      captureInlineSelection();
+      syncInlineToState(dom);
+      /* Persist the live colour; snapshot only once the picker commits. */
+      save();
+    });
+    tcInput.addEventListener('change', function() {
+      saveSnapshot();
+      save();
+    });
+  }
+  /* Snapshot the selection on every change inside the editable so the controls
+     above can re-apply to it after they take focus, and keep the toolbar's
+     active-button state in sync. */
+  document.addEventListener('selectionchange', function() {
+    if (!state.editingElementId) return;
+    captureInlineSelection();
+    updateInlineToolbarState();
+  });
+  /* Delegated input sync. Bound once to the stable #page-content container so
+     it keeps working when renderPage() replaces the editing element's DOM. */
+  var ct = $('page-content');
+  if (ct && !ct._inlineInputBound) {
+    ct._inlineInputBound = true;
+    ct.addEventListener('input', function(e) {
+      if (!state.editingElementId) return;
+      var content = getActiveEditable();
+      if (!content || (e.target !== content && !content.contains(e.target))) return;
+      handleInlineInput();
+    });
+  }
+}
+
 /* --------------- Pointer Events (unified mouse+touch) --------------- */
 function onPointerDown(e) {
+  if (state.readOnly) return;
   var ct = $('page-content');
   if (!ct) return;
+
+  /* If in inline edit mode, let clicks inside the editor pass through */
+  if (state.editingElementId) {
+    var editBox = getEditingBox();
+    if (editBox && editBox.contains(e.target)) {
+      /* Click is inside the editing box — let browser handle caret placement */
+      return;
+    }
+    /* Allow clicks on the inline toolbar buttons */
+    if (e.target && e.target.closest && e.target.closest('#inline-toolbar')) {
+      return;
+    }
+    /* Click is outside — exit edit mode first */
+    exitInlineEdit(true);
+    /* Fall through to normal pointer handling */
+  }
 
   /* Track pointer for pinch */
   state.pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
@@ -2698,7 +4939,7 @@ function onPointerDown(e) {
     if (!d) return;
     resizeId = id;
     resizeStartPt = { x: e.clientX, y: e.clientY };
-    resizeOrig = { x: d.el.x, y: d.el.y, w: d.el.w, h: d.el.h };
+    resizeOrig = { x: d.el.x, y: d.el.y, w: d.el.w, h: d.el.h, lockAspect: d.el.lockAspect };
     return;
   }
 
@@ -2723,16 +4964,43 @@ function onPointerDown(e) {
   var f = findEl(pt.x, pt.y);
   if (f) {
     var sid = f.data.el.id, sel = state.selectedElements;
+    /* Double-click detection for inline text editing */
+    if (f.data.el.type === 'text') {
+      var now = Date.now();
+      if (sid === lastClickId && now - lastClickTime < DOUBLE_CLICK_MS) {
+        enterInlineEdit(sid);
+        lastClickId = null;
+        lastClickTime = 0;
+        return;
+      }
+      lastClickId = sid;
+      lastClickTime = now;
+    }
+    /* Check endpoint hit for lines — priority over full-element drag */
+    if (f.data.el.type === 'line') {
+      var ep = hitEndpoint(f.data.el, pt.x, pt.y);
+      if (ep) {
+        e.preventDefault();
+        select(sid, false);
+        endpointDragging = true;
+        endpointSide = ep;
+        endpointLineId = sid;
+        endpointOrig = ep === 'start' ? { x: f.data.el.x, y: f.data.el.y } : { x: f.data.el.x2, y: f.data.el.y2 };
+        dragStart = pt;
+        showHandles();
+        return;
+      }
+    }
     if (sel.indexOf(sid) !== -1) {
       if (sel.length === 1) {
         dragging = true; dragStart = pt;
         dragIds = sel.slice();
-        dragOrig = sel.map(function(id2) { var dd = getEl(id2); return dd ? { x: dd.el.x, y: dd.el.y } : null; });
+        dragOrig = sel.map(function(id2) { var dd = getEl(id2); return dd ? { x: dd.el.x, y: dd.el.y, x2: dd.el.x2, y2: dd.el.y2 } : null; });
       }
     } else {
       select(sid, false); dragging = true; dragStart = pt;
       dragIds = state.selectedElements.slice();
-      dragOrig = dragIds.map(function(id2) { var dd = getEl(id2); return dd ? { x: dd.el.x, y: dd.el.y } : null; });
+      dragOrig = dragIds.map(function(id2) { var dd = getEl(id2); return dd ? { x: dd.el.x, y: dd.el.y, x2: dd.el.x2, y2: dd.el.y2 } : null; });
     }
     showHandles(); return;
   }
@@ -2749,7 +5017,7 @@ function onPointerMove(e) {
     var dxP = ptrs[1].x - ptrs[0].x, dyP = ptrs[1].y - ptrs[0].y;
     var newDist = Math.sqrt(dxP * dxP + dyP * dyP);
     var scale = newDist / state.pinchStart.dist;
-    var ccEl = $('canvas-container');
+    var ccEl = $('canvas-scroll');
     var r = ccEl.getBoundingClientRect();
     var cx = (ptrs[0].x + ptrs[1].x) / 2 - r.left;
     var cy = (ptrs[0].y + ptrs[1].y) / 2 - r.top;
@@ -2762,6 +5030,7 @@ function onPointerMove(e) {
     state.zoom = nz;
     state.panX += cx - icx;
     state.panY += cy - icy;
+    clampPan();
     applyTransform(); return;
   }
 
@@ -2769,6 +5038,7 @@ function onPointerMove(e) {
     state.panX += e.clientX - state.panStart.x;
     state.panY += e.clientY - state.panStart.y;
     state.panStart = { x: e.clientX, y: e.clientY };
+    clampPan();
     applyTransform(); return;
   }
 
@@ -2776,27 +5046,105 @@ function onPointerMove(e) {
   var posEl = $('status-pos');
   if (posEl) posEl.textContent = Math.round(pt.x) + ', ' + Math.round(pt.y);
 
+  /* Endpoint dragging — move one endpoint of a line */
+  if (endpointDragging && endpointLineId) {
+    var d = getEl(endpointLineId);
+    if (d) {
+      var ddx = pt.x - dragStart.x, ddy = pt.y - dragStart.y;
+      var patch = {};
+      if (endpointSide === 'start') {
+        patch.x = snap(endpointOrig.x + ddx, 'x');
+        patch.y = snap(endpointOrig.y + ddy, 'y');
+      } else {
+        patch.x2 = snap(endpointOrig.x + ddx, 'x');
+        patch.y2 = snap(endpointOrig.y + ddy, 'y');
+      }
+      updEl(endpointLineId, patch);
+      var de = ct.querySelector('[data-id="' + endpointLineId + '"]');
+      if (de) {
+        var el2 = getEl(endpointLineId);
+        if (el2) {
+          var minX = Math.min(el2.el.x, el2.el.x2);
+          var minY = Math.min(el2.el.y, el2.el.y2);
+          de.style.left = minX + 'px';
+          de.style.top = minY + 'px';
+          de.style.width = Math.max(Math.abs(el2.el.x2 - el2.el.x), 1) + 'px';
+          de.style.height = Math.max(Math.abs(el2.el.y2 - el2.el.y), 1) + 'px';
+          var svg = de.querySelector('svg');
+          if (svg) {
+            var ln = svg.querySelector('line');
+            if (ln) {
+              ln.setAttribute('x1', el2.el.x - minX);
+              ln.setAttribute('y1', el2.el.y - minY);
+              ln.setAttribute('x2', el2.el.x2 - minX);
+              ln.setAttribute('y2', el2.el.y2 - minY);
+            }
+          }
+        }
+      }
+    }
+    return;
+  }
+
   if (drawing && drawPt) {
     if (drawGhost) drawGhost.remove();
-    var gh = document.createElement('div'); gh.className = 'selection-ghost';
-    var x1 = Math.min(drawPt.x, pt.x), y1 = Math.min(drawPt.y, pt.y);
-    var x2 = Math.max(drawPt.x, pt.x), y2 = Math.max(drawPt.y, pt.y);
-    gh.style.left = x1 + 'px'; gh.style.top = y1 + 'px';
-    gh.style.width = (x2 - x1) + 'px'; gh.style.height = (y2 - y1) + 'px';
-    ct.appendChild(gh); drawGhost = gh;
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('style', 'position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none');
+    var path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    path.setAttribute('d', 'M' + drawPt.x + ',' + drawPt.y + ' L' + pt.x + ',' + pt.y);
+    path.setAttribute('stroke', '#2563EB');
+    path.setAttribute('stroke-width', '2');
+    path.setAttribute('stroke-dasharray', '6,4');
+    path.setAttribute('fill', 'none');
+    svg.appendChild(path);
+    ct.appendChild(svg);
+    drawGhost = svg;
   }
 
   if (dragging && dragIds) {
     var ddx = pt.x - dragStart.x, ddy = pt.y - dragStart.y;
     dragIds.forEach(function(id, i) {
       if (!dragOrig[i]) return;
-      updEl(id, { x: snap(dragOrig[i].x + ddx), y: snap(dragOrig[i].y + ddy) });
+      var d = getEl(id);
+      if (d && d.el.type === 'line') {
+        /* Lines: shift both endpoints by the same delta */
+        updEl(id, {
+          x: snap(dragOrig[i].x + ddx, 'x'),
+          y: snap(dragOrig[i].y + ddy, 'y'),
+          x2: dragOrig[i].x2 + ddx,
+          y2: dragOrig[i].y2 + ddy
+        });
+      } else {
+        updEl(id, { x: snap(dragOrig[i].x + ddx, 'x'), y: snap(dragOrig[i].y + ddy, 'y') });
+      }
     });
     var pe = $('page-content');
     if (pe) pe.querySelectorAll('.canvas-element').forEach(function(el) {
       if (dragIds.indexOf(el.dataset.id) !== -1) {
         var d = getEl(el.dataset.id);
-        if (d) { el.style.left = d.el.x + 'px'; el.style.top = d.el.y + 'px'; }
+        if (!d) return;
+        if (d.el.type === 'line') {
+          /* Re-render line DOM — full position update */
+          var minX = Math.min(d.el.x, d.el.x2);
+          var minY = Math.min(d.el.y, d.el.y2);
+          el.style.left = minX + 'px';
+          el.style.top = minY + 'px';
+          el.style.width = Math.max(Math.abs(d.el.x2 - d.el.x), 1) + 'px';
+          el.style.height = Math.max(Math.abs(d.el.y2 - d.el.y), 1) + 'px';
+          var svg = el.querySelector('svg');
+          if (svg) {
+            var line = svg.querySelector('line');
+            if (line) {
+              line.setAttribute('x1', d.el.x - minX);
+              line.setAttribute('y1', d.el.y - minY);
+              line.setAttribute('x2', d.el.x2 - minX);
+              line.setAttribute('y2', d.el.y2 - minY);
+            }
+          }
+        } else {
+          el.style.left = d.el.x + 'px';
+          el.style.top = d.el.y + 'px';
+        }
       }
     });
   }
@@ -2809,10 +5157,35 @@ function onPointerMove(e) {
     if (dir.indexOf('w') !== -1) { nw = Math.max(10, r.w - dxS / state.zoom); nx = r.x + r.w - nw; }
     if (dir.indexOf('s') !== -1) nh = Math.max(10, r.h + dyS / state.zoom);
     if (dir.indexOf('n') !== -1) { nh = Math.max(10, r.h - dyS / state.zoom); ny = r.y + r.h - nh; }
-    updEl(resizeId, { x: snap(nx), y: snap(ny), w: snap(nw), h: snap(nh) });
+    /* Snap only the moving edge guide-aware; static edges keep the old grid snap
+       so an east/south resize never drags the opposite edge. Width/height stay grid-only. */
+    var sx = dir.indexOf('w') !== -1 ? snap(nx, 'x') : snap(nx);
+    var sy = dir.indexOf('n') !== -1 ? snap(ny, 'y') : snap(ny);
+    var sw = snap(nw), sh = snap(nh);
+    /* Aspect lock (§26): the element's `lockAspect` flag (Image panel checkbox) or a
+       held Shift keeps the original width:height ratio. The driving axis is the one
+       the pointer moved furthest; the other is derived from it. Position is re-derived
+       so the anchored edges (W/N) stay put. */
+    if (r.lockAspect || e.shiftKey) {
+      var ratio = r.h > 0 ? r.w / r.h : 1;
+      var hasX = dir.indexOf('e') !== -1 || dir.indexOf('w') !== -1;
+      var hasY = dir.indexOf('s') !== -1 || dir.indexOf('n') !== -1;
+      if (hasX && hasY) {
+        if (Math.abs(sw - r.w) >= Math.abs(sh - r.h)) sh = Math.round(sw / ratio);
+        else sw = Math.round(sh * ratio);
+      } else if (hasX) {
+        sh = Math.round(sw / ratio);
+      } else {
+        sw = Math.round(sh * ratio);
+      }
+      sw = Math.max(1, sw); sh = Math.max(1, sh);
+      if (dir.indexOf('w') !== -1) sx = r.x + r.w - sw;
+      if (dir.indexOf('n') !== -1) sy = r.y + r.h - sh;
+    }
+    updEl(resizeId, { x: sx, y: sy, w: sw, h: sh });
     var de = ct.querySelector('[data-id="' + resizeId + '"]');
-    if (de) { de.style.left = snap(nx) + 'px'; de.style.top = snap(ny) + 'px';
-              de.style.width = snap(nw) + 'px'; de.style.height = snap(nh) + 'px'; }
+    if (de) { de.style.left = sx + 'px'; de.style.top = sy + 'px';
+              de.style.width = sw + 'px'; de.style.height = sh + 'px'; }
   }
 }
 
@@ -2820,24 +5193,42 @@ function onPointerUp(e) {
   delete state.pointers[e.pointerId];
   if (state.pinchStart && Object.keys(state.pointers).length < 2) state.pinchStart = null;
   if (state.isPanning) { state.isPanning = false; return; }
+  /* If in edit mode, let the browser handle the click — don't process as canvas interaction */
+  if (state.editingElementId) return;
 
   var wasDrag = dragging, wasResize = resizing;
 
   if (drawing && drawPt) {
     if (drawGhost) { drawGhost.remove(); drawGhost = null; }
     var pt = pageCoords(e);
-    var x1 = Math.min(drawPt.x, pt.x), y1 = Math.min(drawPt.y, pt.y);
-    var x2 = Math.max(drawPt.x, pt.x), y2 = Math.max(drawPt.y, pt.y);
-    if (Math.abs(x2 - x1) > 3 || Math.abs(y2 - y1) > 3) {
-      if (state.tool === 'line') {
+    if (state.tool === 'line') {
+      if (Math.abs(pt.x - drawPt.x) > 3 || Math.abs(pt.y - drawPt.y) > 3) {
+        /* Hold Shift to constrain angle to 15° increments */
+        if (e.shiftKey) {
+          var dx = pt.x - drawPt.x;
+          var dy = pt.y - drawPt.y;
+          var angle = Math.atan2(dy, dx);
+          var snap = Math.PI / 12;
+          var snapped = Math.round(angle / snap) * snap;
+          var len = Math.sqrt(dx * dx + dy * dy);
+          pt.x = drawPt.x + len * Math.cos(snapped);
+          pt.y = drawPt.y + len * Math.sin(snapped);
+        }
         addElement('line', {
-          x: x1, y: y1, x2: x2, y2: y2,
-          w: Math.abs(x2 - x1), h: Math.abs(y2 - y1),
+          x: drawPt.x, y: drawPt.y,
+          x2: pt.x, y2: pt.y,
+          w: Math.max(1, Math.abs(pt.x - drawPt.x)),
+          h: Math.max(1, Math.abs(pt.y - drawPt.y)),
           stroke: '#111113', strokeWidth: 1
         });
       }
     }
     drawing = false; drawPt = null;
+  }
+
+  if (endpointDragging) {
+    saveSnapshot(); emit();
+    endpointDragging = false; endpointSide = null; endpointLineId = null; endpointOrig = null;
   }
 
   if (wasDrag || wasResize) { saveSnapshot(); emit(); }
@@ -2850,21 +5241,25 @@ function onPointerCancel(e) {
   delete state.pointers[e.pointerId];
   if (state.pinchStart && Object.keys(state.pointers).length < 2) state.pinchStart = null;
   state.isPanning = false; drawing = false; dragging = false; resizing = false;
+  endpointDragging = false; endpointSide = null; endpointLineId = null; endpointOrig = null;
   if (drawGhost) { drawGhost.remove(); drawGhost = null; }
 }
 
 function onWheel(e) {
   e.preventDefault();
   if (e.ctrlKey || e.metaKey) {
-    var d = e.deltaY > 0 ? -0.1 : 0.1;
-    var nz = Math.max(state.minZoom, Math.min(state.maxZoom, state.zoom + d));
+    clampPan();  // before zoom — start from valid position
+    var d = e.deltaY > 0 ? -CONFIG.zoomStep : CONFIG.zoomStep;
+    var nz = clamp(state.zoom + d, state.minZoom, state.maxZoom);
     var cb = e.currentTarget.getBoundingClientRect();
     state.panX = (e.clientX - cb.left) - ((e.clientX - cb.left) - state.panX) * (nz / state.zoom);
     state.panY = (e.clientY - cb.top) - ((e.clientY - cb.top) - state.panY) * (nz / state.zoom);
     state.zoom = nz;
     applyTransform();
+    clampPan();  // after zoom — final result stays in bounds
   } else if (!state.pinchStart) {
     state.panX -= e.deltaX; state.panY -= e.deltaY;
+    clampPan();
     applyTransform();
   }
 }
@@ -2874,12 +5269,49 @@ function onKey(e) {
   var key = e.key.toLowerCase();
   var ctrl = e.ctrlKey || e.metaKey;
 
+  /* Toggle snapping (S). A view preference like the grid toggle, so it stays
+     available in read-only mode. */
+  if (!ctrl && key === 's') {
+    var aeS = document.activeElement;
+    if (!state.editingElementId && !(aeS && (aeS.isContentEditable || aeS.tagName === 'INPUT' || aeS.tagName === 'TEXTAREA' || aeS.tagName === 'SELECT'))) {
+      e.preventDefault();
+      setSnapEnabled(!state.snapEnabled);
+      return;
+    }
+  }
+
+  if (state.readOnly) return;
+
+  /* If in inline edit mode, handle edit-specific keys */
+  if (state.editingElementId) {
+    if (key === 'escape') {
+      e.preventDefault();
+      exitInlineEdit(true);
+      return;
+    }
+    /* Ctrl+K — insert link */
+    if (ctrl && key === 'k') {
+      e.preventDefault();
+      var url = prompt('Enter link URL:', 'https://');
+      if (url) document.execCommand('createLink', false, url);
+      return;
+    }
+    /* Arrow keys — let browser handle caret movement natively */
+    if (!ctrl && (key === 'arrowup' || key === 'arrowdown' || key === 'arrowleft' || key === 'arrowright')) {
+      return;
+    }
+    /* Let other keys pass through (Ctrl+B/I/U handled natively) */
+  }
+
   if (ctrl && key === 'z') {
+    /* During inline editing, let the browser handle undo/redo for the editable */
+    if (state.editingElementId) return;
     e.preventDefault();
     if (e.shiftKey) redo(); else undo();
     return;
   }
   if (ctrl && key === 'd') {
+    if (state.editingElementId) return;
     e.preventDefault();
     state.selectedElements.forEach(function(id) { dupElement(id); });
     return;
@@ -2925,17 +5357,88 @@ function onKey(e) {
       if (key === 'r') { e.preventDefault(); document.execCommand('justifyRight', false, null); return; }
     }
   }
+
+  // ===== Arrow-key element movement =====
+  if (ARROW_DELTA[e.key] && state.selectedElements.length > 0) {
+    var ae = document.activeElement;
+    if (ae && (ae.isContentEditable || ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT')) return;
+    e.preventDefault();
+    if (!_arrowMoveActive) {
+      _arrowMoveActive = true;
+      saveSnapshot();
+    }
+    var d = ARROW_DELTA[e.key];
+    var step = e.shiftKey ? CONFIG.arrowStepBig : CONFIG.arrowStep;
+    var moved = false;
+    state.selectedElements.forEach(function(id) {
+      var res = getEl(id);
+      if (!res) return;
+      var el = res.el;
+      el.x += d.dx * step;
+      el.y += d.dy * step;
+      if (el.type === 'line') {
+        el.x2 += d.dx * step;
+        el.y2 += d.dy * step;
+      }
+      el.x = Math.max(0, el.x);
+      el.y = Math.max(0, el.y);
+      moved = true;
+    });
+    if (moved) {
+      state.selectedElements.forEach(function(id) {
+        updEl(id, {});
+        var de = $('page-content').querySelector('[data-id="' + id + '"]');
+        if (de) {
+          var el2 = getEl(id);
+          if (el2) {
+            if (el2.el.type === 'line') {
+              var minX = Math.min(el2.el.x, el2.el.x2);
+              var minY = Math.min(el2.el.y, el2.el.y2);
+              de.style.left = minX + 'px';
+              de.style.top = minY + 'px';
+              de.style.width = Math.max(Math.abs(el2.el.x2 - el2.el.x), 1) + 'px';
+              de.style.height = Math.max(Math.abs(el2.el.y2 - el2.el.y), 1) + 'px';
+              var svg = de.querySelector('svg');
+              if (svg) {
+                var ln = svg.querySelector('line');
+                if (ln) {
+                  ln.setAttribute('x1', el2.el.x - minX);
+                  ln.setAttribute('y1', el2.el.y - minY);
+                  ln.setAttribute('x2', el2.el.x2 - minX);
+                  ln.setAttribute('y2', el2.el.y2 - minY);
+                }
+              }
+            } else {
+              de.style.left = el2.el.x + 'px';
+              de.style.top = el2.el.y + 'px';
+            }
+          }
+        }
+      });
+    }
+    return;
+  }
 }
 
 /* --------------- Zoom --------------- */
 function zoomIn() {
-  state.zoom = Math.min(state.maxZoom, state.zoom + 0.25);
+  state.zoom = clamp(state.zoom + 0.25, state.minZoom, state.maxZoom);
+  clampPan();
   applyTransform();
+  if (state.editingElementId) {
+    var dom = getActiveEditable();
+    if (dom) showInlineToolbar(dom);
+  }
 }
 
 function zoomOut() {
-  state.zoom = Math.max(state.minZoom, state.zoom - 0.25);
+  state.zoom = clamp(state.zoom - 0.25, state.minZoom, state.maxZoom);
+  clampPan();
   applyTransform();
+  if (state.editingElementId) {
+    var dom = getActiveEditable();
+    if (dom) showInlineToolbar(dom);
+  }
 }
 
 /* --------------- WIP Banner --------------- */
@@ -2948,6 +5451,20 @@ function dismissWip() {
 }
 
 /* --------------- Image Insert --------------- */
+
+/* Longest side (px) an inserted image is scaled down to fit. */
+var IMAGE_INSERT_MAX = 300;
+
+/* Fit natural pixel dimensions into a IMAGE_INSERT_MAX-px box while preserving
+   the source aspect ratio. Images smaller than the box keep their natural size
+   (no blurry upscaling). */
+function fitImageSize(nw, nh) {
+  nw = Math.max(1, Math.round(nw) || 1);
+  nh = Math.max(1, Math.round(nh) || 1);
+  var s = Math.min(1, IMAGE_INSERT_MAX / Math.max(nw, nh));
+  return { w: Math.max(1, Math.round(nw * s)), h: Math.max(1, Math.round(nh * s)) };
+}
+
 function onImageInsert(e) {
   var file = e.target.files && e.target.files[0];
   if (!file) return;
@@ -2961,9 +5478,20 @@ function onImageInsert(e) {
   }
   var reader = new FileReader();
   reader.onload = function(ev) {
-    var el = addElement('image', { src: ev.target.result, x: 100, y: 100, w: 300, h: 300 });
-    select(el.id, false);
-    setTool('select');
+    var src = ev.target.result;
+    /* Probe the image so the new element starts at the source aspect ratio
+       instead of a fixed square box. */
+    var probe = new Image();
+    probe.onload = function() {
+      var d = fitImageSize(probe.naturalWidth || probe.width, probe.naturalHeight || probe.height);
+      var el = addElement('image', { src: src, x: 100, y: 100, w: d.w, h: d.h });
+      select(el.id, false);
+      setTool('select');
+    };
+    probe.onerror = function() {
+      showToast('Failed to load image. The file may be corrupted.', 'error');
+    };
+    probe.src = src;
   };
   reader.onerror = function() {
     showToast('Failed to load image. The file may be corrupted.', 'error');
@@ -3078,6 +5606,39 @@ function bindThemeToggle() {
   applyTheme(currentTheme);
 }
 
+/* --------------- Left Sidebar Collapse --------------- */
+function bindLeftSidebarCollapse() {
+  var sidebar = $('sidebar-left');
+  var collapseBtn = $('btn-collapse-left-sidebar');
+  if (!sidebar || !collapseBtn) return;
+
+  function toggleLeftSidebar() {
+    var collapsed = sidebar.classList.toggle('collapsed');
+    var svg = collapseBtn.querySelector('svg');
+    if (collapsed) {
+      collapseBtn.title = 'Expand pages panel';
+      if (svg) svg.style.transform = 'scaleX(-1)';
+    } else {
+      collapseBtn.title = 'Collapse pages panel';
+      if (svg) svg.style.transform = '';
+    }
+    localStorage.setItem('lp-left-sidebar-collapsed', collapsed ? '1' : '0');
+    reClampPan();
+  }
+
+  collapseBtn.addEventListener('click', function(e) {
+    e.stopPropagation();
+    toggleLeftSidebar();
+  });
+
+  /* Click collapsed sidebar strip to expand */
+  sidebar.addEventListener('click', function(e) {
+    if (sidebar.classList.contains('collapsed') && e.target !== collapseBtn && !e.target.closest('#sidebar-left .sidebar-collapse-btn')) {
+      toggleLeftSidebar();
+    }
+  });
+}
+
 /* --------------- Sidebar Resize & Collapse --------------- */
 function bindSidebarResize() {
   var sidebar = $('sidebar-right');
@@ -3103,6 +5664,7 @@ function bindSidebarResize() {
       }
     }
     localStorage.setItem('lp-sidebar-collapsed', collapsed ? '1' : '0');
+    reClampPan();
   }
 
   collapseBtn.addEventListener('click', function(e) {
@@ -3137,17 +5699,29 @@ function bindSidebarResize() {
     if (!handle.classList.contains('active')) return;
     handle.classList.remove('active');
     try { localStorage.setItem('lp-sidebar-width', String(sidebar.offsetWidth)); } catch (e) {}
+    reClampPan();
   });
 }
 
 /* --------------- Init --------------- */
 function init() {
   bindProps();
+  bindDocProps();
+  bindAlign();
   bindPanelEditor();
   bindFindReplace();
   bindToolbar();
   bindThemeToggle();
+  bindLeftSidebarCollapse();
   bindSidebarResize();
+  bindInlineToolbar();
+
+  /* Multi-tab coordination + native file auto-save */
+  setupBroadcastChannel();
+  restoreAutoSaveHandle();
+  updateAutoSaveUI();
+  window.addEventListener('beforeunload', function() { if (!state.readOnly) save(); releaseChannel(); });
+  window.addEventListener('pagehide', function() { if (!state.readOnly) save(); releaseChannel(); });
 
   /* WIP banner dismiss */
   var wipClose = $('lp-wip-close');
@@ -3168,12 +5742,30 @@ function init() {
     cc.addEventListener('wheel', onWheel, { passive: false });
   }
 
+  window.addEventListener('resize', reClampPan);
+
   document.addEventListener('keydown', onKey);
+  document.addEventListener('keyup', function(e) {
+    if (ARROW_DELTA[e.key]) _arrowMoveActive = false;
+    if (e.key === 'Shift') setSnapTemp(false);
+  });
+
+  /* Momentary snapping (§30): hold Shift to snap while the master switch is off.
+     Registered separately from onKey() because Shift must work in read-only mode
+     and must not be swallowed by the editing / input-field guards. */
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Shift') setSnapTemp(true);
+  });
+  window.addEventListener('blur', function() { setSnapTemp(false); });
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) setSnapTemp(false);
+  });
 
   /* Re-enable context menu on canvas for text editing */
   var cs = $('canvas-scroll');
   if (cs) {
     cs.addEventListener('contextmenu', function(e) {
+      if (state.readOnly) { e.preventDefault(); return; }
       var el = document.elementFromPoint(e.clientX, e.clientY);
       var textEl = el && el.closest ? el.closest('.el-text') : null;
       if (!textEl) { e.preventDefault(); return; }
@@ -3185,6 +5777,7 @@ function init() {
   if (iif) iif.addEventListener('change', onImageInsert);
 
   var saved = load();
+  state.project = saved ? saved.project : mkProject();
   if (saved && saved.pages && saved.pages.length > 0) {
     state.pages = saved.pages;
     state.currentPageIndex = saved.idx || 0;
@@ -3206,6 +5799,7 @@ function init() {
   if (savedPanX) state.panX = parseFloat(savedPanX) || 0;
   var savedPanY = localStorage.getItem('lp-panY');
   if (savedPanY) state.panY = parseFloat(savedPanY) || 0;
+  clampPan();
   /* Restore grid toggle */
   var showGrid = localStorage.getItem('lp-show-grid');
   if (showGrid === '0') {
@@ -3218,7 +5812,23 @@ function init() {
     var gtb = $('grid-toggle');
     if (gtb) gtb.classList.add('active');
   }
+  /* Restore snap toggle (default on; quiet so it does not toast on load) */
+  setSnapEnabled(localStorage.getItem('lp-snap') !== '0', true);
   refresh();
+
+  /* Restore left sidebar collapsed state */
+  (function() {
+    var leftSidebar = $('sidebar-left');
+    var leftCollapseBtn = $('btn-collapse-left-sidebar');
+    if (!leftSidebar || !leftCollapseBtn) return;
+
+    if (localStorage.getItem('lp-left-sidebar-collapsed') === '1') {
+      leftSidebar.classList.add('collapsed');
+      leftCollapseBtn.title = 'Expand pages panel';
+      var svg = leftCollapseBtn.querySelector('svg');
+      if (svg) svg.style.transform = 'scaleX(-1)';
+    }
+  })();
 
   /* Restore sidebar collapsed state and width */
   (function() {

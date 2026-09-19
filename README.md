@@ -219,6 +219,8 @@ That's it. No `npm install`, no `node server`, no setup.
 
 ### Persistence
 - **Autosave** — Work is automatically saved to browser localStorage
+- **Auto-save to file** — In Chrome/Edge, Save opens a native file picker and the project is continuously written to that file (the green dot on the Save button indicates active auto-save; clicking it again downloads a backup)
+- **Multi-tab safety** — Opening a second browser tab makes it read-only so two tabs can't overwrite each other; the second tab takes over editing when the first closes
 - **Restore** — Open the file again and your work is restored
 - **Export** — Save your design as a standalone HTML file
 
@@ -276,6 +278,8 @@ index.html
 - Pub/sub pattern for rendering updates
 - Undo/redo with 50-step history
 - localStorage autosave with 1.5s debounce
+- Optional native file auto-save via the File System Access API (Chrome/Edge), with the file handle persisted in IndexedDB
+- Multi-tab coordination via BroadcastChannel — one editor tab, all others read-only
 
 #### Rendering
 - Full DOM rebuild on state changes (simpler and less error-prone)
