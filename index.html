@@ -223,7 +223,8 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .page-thumb{background:var(--lp-bg-page);border:1px solid transparent;border-radius:var(--radius-sm);margin-bottom:var(--space-2);cursor:pointer;position:relative;overflow:hidden;transition:border-color .15s}
 .page-thumb:hover{border-color:var(--color-border);box-shadow:var(--shadow-sm)}
 .page-thumb.active{border-color:var(--color-accent)}
-.page-thumb-canvas{width:100%;aspect-ratio:.7727;position:relative;background:#fff}
+.page-thumb-viewport{width:100%;position:relative;overflow:hidden;background:#fff}
+.page-thumb-stage{position:absolute;top:0;left:0;transform-origin:0 0;pointer-events:none}
 .page-thumb-label{padding:var(--space-1) var(--space-2);text-align:center;font-size:var(--text-xs);color:var(--color-text-disabled);background:var(--color-surface)}
 .page-thumb .delete-page-btn{
   position:absolute;top:2px;right:2px;
@@ -466,7 +467,13 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 /* Resize handles: the element is a generous transparent hit area (22×22px);
    the small visible square is drawn by ::after so the target is much easier to
    grab without making the chrome look heavy. See PROJECT_PAGE_PROPS §7.2. */
-.resize-handle{position:absolute;width:22px;height:22px;background:transparent;border:none;z-index:10}
+/* Resize handles live in a top overlay (a sibling of the elements, above every
+   z-height) so the active selection's handles are always clickable even when
+   the selected element sits behind another. The overlay passes pointer events
+   through; only the handles themselves capture them. */
+.handle-overlay{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999}
+.handle-box{position:absolute;pointer-events:none;transform-origin:center}
+.resize-handle{position:absolute;width:22px;height:22px;background:transparent;border:none;pointer-events:auto;z-index:10}
 .resize-handle::after{content:"";position:absolute;top:50%;left:50%;width:13px;height:13px;box-sizing:border-box;transform:translate(-50%,-50%);background:var(--color-surface);border:1.5px solid var(--color-accent);border-radius:2px}
 .resize-handle.nw{top:-11px;left:-11px;cursor:nw-resize}
 .resize-handle.ne{top:-11px;right:-11px;cursor:ne-resize}
@@ -1414,6 +1421,9 @@ function clampPan() {
 function reClampPan() {
   clampPan();
   applyTransform();
+  /* Page thumbnails scale to the sidebar width; re-fit on window resize/breakpoint
+     changes and when the pages panel collapses or expands. */
+  layoutThumbs();
 }
 
 /* --------------- Toast system (STYLE_GUIDE §7.5) --------------- */
@@ -2940,12 +2950,7 @@ function renderPages() {
     t.setAttribute('tabindex', '0');
     t.setAttribute('aria-label', pg.name);
 
-    var c = document.createElement('canvas');
-    c.width = 212;
-    c.height = 275;
-    c.className = 'page-thumb-canvas';
-    drawThumb(c, pg);
-    t.appendChild(c);
+    t.appendChild(buildThumb(pg));
 
     var lb = document.createElement('div');
     lb.className = 'page-thumb-label';
@@ -2975,52 +2980,71 @@ function renderPages() {
 
     list.appendChild(t);
   });
+  layoutThumbs(list);
+  ensureThumbObserver(list);
   var ab = $('add-page-btn');
   if (ab) ab.style.display = state.pages.length >= 10 ? 'none' : 'flex';
 }
 
-function drawThumb(canvas, pg) {
-  var ctx = canvas.getContext('2d');
+/* --------------- Page thumbnails --------------- */
+/* Thumbnails are live, scaled-down copies of the page built from the exact same
+   builders the canvas and exports use (domEl() via exportElementsHTML() +
+   exportElementCSS()). The sidebar therefore shows an honest miniature of the
+   page — rich text, images, corner radii, strokes, rotation, opacity and the
+   page background all match. This replaces the old hand-written 2D painter,
+   which drifted from the real render (circles drawn as squares, gray image
+   placeholders, one-line truncated text). A shadow root isolates the export
+   stylesheet so its `*{margin:0;padding:0}` reset never leaks into the editor. */
+function buildThumb(pg) {
   var pw = pg.pw || PW, ph = pg.ph || PH;
-  var cw = canvas.width, ch = canvas.height;
-  var s = Math.min(cw / pw, ch / ph);
-  var ox = (cw - pw * s) / 2, oy = (ch - ph * s) / 2;
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(0, 0, cw, ch);
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(ox, oy, pw * s, ph * s);
-  var drawOrder = pg.elements.slice().sort(function(a, b) {
-    var az = (a.zHeight != null ? a.zHeight : 0), bz = (b.zHeight != null ? b.zHeight : 0);
-    if (az !== bz) return az - bz;
-    return pg.elements.indexOf(a) - pg.elements.indexOf(b);
-  });
-  drawOrder.forEach(function(el) {
-    if (!el.visible) return;
-    ctx.globalAlpha = el.opacity / 100;
-    if (el.type === 'text') {
-      ctx.fillStyle = el.textColor;
-      ctx.font = (el.fontSize * s) + 'px ' + el.fontFamily;
-      var txt = el.text;
-      if (el.richText) txt = el.richText.replace(/<[^>]*>/g, '');
-      txt = (txt || '').substring(0, 30);
-      ctx.fillText(txt, ox + el.x * s, oy + el.y * s + el.fontSize * s * 0.8);
-    } else if (el.type === 'rect' || el.type === 'circle') {
-      ctx.fillStyle = el.fill;
-      ctx.fillRect(ox + el.x * s, oy + el.y * s, el.w * s, el.h * s);
-    } else if (el.type === 'line') {
-      ctx.strokeStyle = el.stroke;
-      ctx.lineWidth = el.strokeWidth;
-      ctx.beginPath();
-      ctx.moveTo(ox + el.x * s, oy + el.y * s);
-      ctx.lineTo(ox + el.x2 * s, oy + el.y2 * s);
-      ctx.stroke();
-    } else if (el.type === 'image' && el.src) {
-      /* Simple rect placeholder */
-      ctx.fillStyle = '#ccc';
-      ctx.fillRect(ox + el.x * s, oy + el.y * s, el.w * s, el.h * s);
-    }
-  });
-  ctx.globalAlpha = 1;
+  var bg = pg.background || '#FFFFFF';
+  var vp = document.createElement('div');
+  vp.className = 'page-thumb-viewport';
+  vp.style.aspectRatio = pw + ' / ' + ph;
+  var st = document.createElement('div');
+  st.className = 'page-thumb-stage';
+  st.dataset.pw = pw;
+  st.style.width = pw + 'px';
+  st.style.height = ph + 'px';
+  var page = '<div class="page" style="position:relative;overflow:hidden;width:' + pw +
+             'px;height:' + ph + 'px;background:' + bg + '">' + exportElementsHTML(pg, 0) + '</div>';
+  if (st.attachShadow) {
+    st.attachShadow({ mode: 'open' }).innerHTML = '<style>' + exportElementCSS() + '</style>' + page;
+  } else {
+    /* No shadow DOM: fall back to light DOM. domEl() writes inline left/top/
+       size and the live .canvas-element CSS positions each node, so only the
+       page background needs an inline fallback. Never inject the export reset
+       globally — it would wipe the editor chrome. */
+    st.innerHTML = page;
+  }
+  vp.appendChild(st);
+  return vp;
+}
+
+/* Scale each fixed-size stage to fill the sidebar width. The stage is the page
+   at true size; transform:scale() shrinks it without reflow, so text metrics
+   stay identical to the canvas. Re-run on sidebar resize via the ResizeObserver
+   below (scaling never changes the list width, so this cannot loop). */
+function layoutThumbs(list) {
+  list = list || $('page-list');
+  if (!list) return;
+  var stages = list.querySelectorAll('.page-thumb-stage');
+  if (!stages.length) return;
+  var avail = stages[0].parentNode.clientWidth;
+  if (!avail) return; /* panel hidden/collapsed — reClampPan()/the observer will re-fit when shown */
+  for (var i = 0; i < stages.length; i++) {
+    var pw = parseFloat(stages[i].dataset.pw) || PW;
+    stages[i].style.transform = 'scale(' + (avail / pw) + ')';
+  }
+}
+
+var thumbObserver = null;
+function ensureThumbObserver(list) {
+  if (thumbObserver || typeof ResizeObserver === 'undefined') return;
+  list = list || $('page-list');
+  if (!list) return;
+  thumbObserver = new ResizeObserver(function() { layoutThumbs(list); });
+  thumbObserver.observe(list);
 }
 
 /* --------------- Layers Panel (STYLE_GUIDE §3 — no emojis) --------------- */
@@ -4750,13 +4774,17 @@ function bindDocProps() {
 function showHandles() {
   var ct = $('page-content');
   if (!ct) return;
+  /* Handles are drawn in a dedicated overlay that sits above every element, so a
+     selected element's handles stay clickable even when it is behind another
+     element. Each handle carries its owner's id, because the overlay is not a
+     descendant of the .canvas-element. */
+  var oldOverlay = ct.querySelector('.handle-overlay');
+  if (oldOverlay) oldOverlay.remove();
   ct.querySelectorAll('.resize-handle').forEach(function(h) { h.remove(); });
+  var overlay = null;
   state.selectedElements.forEach(function(id) {
-    var d = ct.querySelector('[data-id="' + id + '"]');
-    if (!d) return;
     /* Hide resize handles while a text box is being inline-edited — matches
-       standard editors (Google Slides etc.). Handles are siblings of the
-       .el-content node, so they can never leak into the editable content. */
+       standard editors (Google Slides etc.). */
     if (id === state.editingElementId) return;
     var elData = getEl(id);
     if (!elData) return;
@@ -4764,12 +4792,30 @@ function showHandles() {
       /* Lines show no resize handles — they are endpoint-defined, not box-defined */
       return;
     }
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'handle-overlay';
+      ct.appendChild(overlay);
+    }
+    var el = elData.el;
+    /* One box per selected element, placed exactly over it (including rotation)
+       so the same corner/edge offsets work as when handles were children. */
+    var box = document.createElement('div');
+    box.className = 'handle-box';
+    box.dataset.id = id;
+    box.style.left = el.x + 'px';
+    box.style.top = el.y + 'px';
+    box.style.width = el.w + 'px';
+    box.style.height = el.h + 'px';
+    if (el.rotation) box.style.transform = 'rotate(' + el.rotation + 'deg)';
     ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(function(p) {
       var h = document.createElement('div');
       h.className = 'resize-handle ' + p;
       h.dataset.handle = p;
-      d.appendChild(h);
+      h.dataset.id = id;
+      box.appendChild(h);
     });
+    overlay.appendChild(box);
   });
   document.querySelectorAll('.canvas-element').forEach(function(el) {
     var isSel = state.selectedElements.indexOf(el.dataset.id) !== -1;
@@ -4779,7 +4825,10 @@ function showHandles() {
 
 function hideHandles() {
   var ct = $('page-content');
-  if (ct) ct.querySelectorAll('.resize-handle').forEach(function(h) { h.remove(); });
+  if (!ct) return;
+  ct.querySelectorAll('.resize-handle').forEach(function(h) { h.remove(); });
+  var o = ct.querySelector('.handle-overlay');
+  if (o) o.remove();
 }
 
 /* --------------- Hit Testing --------------- */
@@ -4825,12 +4874,16 @@ function findEl(x, y) {
      independent of insertion order, so the last DOM node is not necessarily
      the frontmost element. */
   var best = null, bestZ = -Infinity;
+  var sel = state.selectedElements;
   for (var i = els.length - 1; i >= 0; i--) {
     var id = els[i].dataset.id;
     var d = getEl(id);
     if (d && d.el.visible && hitTest(d.el, x, y)) {
       var z = (d.el.zHeight != null ? d.el.zHeight : i);
-      if (z > bestZ) { bestZ = z; best = { dom: els[i], data: d }; }
+      /* A selected element wins over anything above it, so every part of the
+         active selection stays grabbable even under overlapping elements. */
+      var rank = sel.indexOf(id) !== -1 ? z + 1000000 : z;
+      if (rank > bestZ) { bestZ = rank; best = { dom: els[i], data: d }; }
     }
   }
   return best;
@@ -5417,9 +5470,9 @@ function onPointerDown(e) {
     e.stopPropagation(); e.preventDefault();
     resizing = true;
     resizeDir = handle.dataset.handle;
-    var elDom = handle.closest('.canvas-element');
-    if (!elDom) return;
-    var id = elDom.dataset.id;
+    /* Handles live in the overlay, not inside the element, so read the owner id
+       from the handle itself. */
+    var id = handle.dataset.id;
     var d = getEl(id);
     if (!d) return;
     resizeId = id;
@@ -5652,6 +5705,9 @@ function onPointerMove(e) {
           el.style.left = d.el.x + 'px';
           el.style.top = d.el.y + 'px';
         }
+        /* Keep the overlay handle box glued to the element while dragging. */
+        var hb = pe.querySelector('.handle-box[data-id="' + el.dataset.id + '"]');
+        if (hb) { hb.style.left = d.el.x + 'px'; hb.style.top = d.el.y + 'px'; }
       }
     });
   }
@@ -5693,6 +5749,9 @@ function onPointerMove(e) {
     var de = ct.querySelector('[data-id="' + resizeId + '"]');
     if (de) { de.style.left = sx + 'px'; de.style.top = sy + 'px';
               de.style.width = sw + 'px'; de.style.height = sh + 'px'; }
+    var hb = ct.querySelector('.handle-box[data-id="' + resizeId + '"]');
+    if (hb) { hb.style.left = sx + 'px'; hb.style.top = sy + 'px';
+              hb.style.width = sw + 'px'; hb.style.height = sh + 'px'; }
   }
 }
 

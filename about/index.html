@@ -181,6 +181,11 @@ footer a:hover{text-decoration:underline}
           <li>Unique z-height per element &mdash; no two elements on a page share a z-order rank; the stack is re-densified on every structural change</li>
           <li>Layer reordering &mdash; drag rows in the Layers panel, use Bring Forward / Send Backward / Bring to Front / Send to Back (toolbar or <code>Ctrl+]</code> / <code>Ctrl+[</code>), or type a rank in the Layers panel or the Properties <strong>Z</strong> field</li>
           <li>Element naming &mdash; a <strong>Name</strong> field in the Properties panel plus double-click-to-rename in the Layers panel, reflected in the layer list</li>
+          <li>Selected elements stay fully grabbable &mdash; resize handles now render in a top overlay (independent of element z-height) and the active selection wins hit-testing, so a selected element's handles and body can always be clicked even when another element sits on top of it</li>
+          <li>Page thumbnails are now honest miniatures of the page &mdash; the sidebar renders a real, scaled copy of the canvas instead of a separate hand-drawn approximation</li>
+          <li>Thumbnails reuse the exact same element renderer as the canvas and export (<code>domEl()</code>), so rich text, images, corner radii, strokes, rotation, opacity and the page background all match what you see on the canvas</li>
+          <li>Each thumbnail is CSS-scaled to the sidebar width, uses the page's true aspect ratio (no more letterboxing of A4 or landscape pages), and re-fits when the window resizes or the pages panel collapses/expands</li>
+          <li>Removed the old standalone canvas painter, which drifted from the real render (circles drawn as squares, gray image placeholders, single-line truncated text)</li>
         </ul>
       </div>
       <div class="changelog-entry">

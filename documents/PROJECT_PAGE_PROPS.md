@@ -72,7 +72,7 @@ The guiding rules:
 | Snapping | `snap(v)` `index.html:1192` | Always `Math.round(v / GRID) * GRID` |
 | Persistence | `save()` 1525, `load()` 1537, `buildProjectData()` 1571 | Two competing shapes, both `v: 1`, neither has project data |
 | Export | `exportHTML()` 1841, `exportPDF()` 1919 | Pixel sizes only; no `@page`, no physical units, no bleed/crop marks |
-| Thumbnails | `drawThumb()` 2117 | Scales `pg.pw`/`pg.ph` into a fixed canvas — already page-aware |
+| Thumbnails | `buildThumb()` `index.html:2982` | Reuses `domEl()`/`exportElementsHTML()` in a shadow-rooted, `transform: scale()`d page copy — page-aware and canvas-faithful (replaced `drawThumb()`, a separate 2D painter) |
 
 ### 2.2 What is missing or broken
 
@@ -378,7 +378,7 @@ CSS:
 .guide-bleed{border:1px solid var(--guide-bleed,#16A34A);position:absolute;box-sizing:border-box}
 ```
 
-> **Corrected stacking order (see §0.1 R4).** The existing stacking context is: `.grid-layer` `z-index:0` → `.page-content` `z-index:1` → individual elements `z-index: i+1` (set per-element in `domEl()`, `index.html:2249`) → `.resize-handle` `z-index:10` → `.selection-ghost` `z-index:50` → `#inline-toolbar` `z-index:10000` (fixed, off-canvas). Putting guides at `999` would render them **above resize handles and the selection ghost**, burying the active selection's handles under a margin line whenever it sits near a guide — a real visual bug, not just a theoretical one, because default margins (0.5in/48px) are well within typical element positions.
+> **Corrected stacking order (see §0.1 R4).** The existing stacking context is: `.grid-layer` `z-index:0` → `.page-content` `z-index:1` → individual elements `z-index: i+1` (set per-element in `domEl()`, `index.html:2249`) → **`.handle-overlay` `z-index:9999`** (sibling of the elements, so the active selection's `.resize-handle`s are always hittable regardless of the selected element's z-height) → `.selection-ghost` `z-index:50` → `#inline-toolbar` `z-index:10000` (fixed, off-canvas). The handles themselves keep `z-index:10` but are now children of the overlay, not of `.canvas-element`; each handle carries `data-id` for its owner. Putting guides at `999` would render them **above resize handles and the selection ghost**, burying the active selection's handles under a margin line whenever it sits near a guide — a real visual bug, not just a theoretical one, because default margins (0.5in/48px) are well within typical element positions.
 >
 > **Use `z-index:0`** (as implemented). The subtlety that an earlier pass missed: `.page-content` sets `z-index:1`, which makes it a *stacking context* — so a **sibling** layer at `2` paints *above* `.page-content` and therefore above every element, handle, and selection ghost inside it. At `z-index:0` the guides paint after `.grid-layer` but before `.page-content`: behind all content, yet visible through empty space. That is the intent — "visible through empty space, never obscuring the selection UI." If a future requirement needs guides drawn *over* opaque objects, revisit this value deliberately rather than defaulting to "on top of everything."
 
@@ -718,7 +718,7 @@ Phase 2 applies this to element `x/y/w/h` and spacing fields; Phase 1 uses it fo
 | `updatePageDimensions()` 2955 | Already sets `--lp-pw`/`--lp-ph` (which size `.canvas-page`, `.ruler-h`, `.ruler-v`) and `#page-content.minHeight`. Do **not** add explicit `#canvas-page` width/height — that fights the vars and desyncs the rulers. Only add `clampPan()`+`applyTransform()` after a page-size change. |
 | `renderGrid()` 1225 | **Done (Phase 3):** uses `project.grid.spacing` × `subdivisions` for major/minor lines, plus a dashed baseline overlay when `project.grid.showBaseline` and `baseline > 0`. The defaults (10/5) reproduce the old 50 px major lines exactly. |
 | `snap()` 1192 | **Done (Phase 3):** `snap(v, axis)` uses `project.grid.spacing`; when `project.guides.snapToGuides` is on and a content/column guide is within 6 px on that axis, the guide wins, else the grid. Omit `axis` for a pure grid snap (width/height). |
-| `drawThumb()` 2117 | Already page-size aware; optionally draw a faint margin rectangle. |
+| `buildThumb()` `index.html:2982` | Already page-size aware (true `pw`/`ph` aspect); reuses the canvas renderer, so a faint margin rectangle would only need adding once. |
 | `align()` 1453 | Keep trim-based centering. |
 | Auto-resize text (`applyAutoResize()` 2964) | Unaffected. |
 | Multi-tab `reloadFromStorage()` 1806 | Must run `normalizeProject()` so a v1 tab's data still loads while another tab runs v2. |
@@ -1030,7 +1030,7 @@ The **as-built sections §20–§32** were re-verified against the current tree 
 | `exportPDF()` (waits for load, prints) | 2486  |
 | **Phase 4** `exportRaster(format)` | 2503  |
 | `domEl()` (per-element `z-index: i+1`) | 2641  |
-| `drawThumb()` | 2747  |
+| `buildThumb()` | 2982  |
 | `updateProps()` (unit-aware element fields + doc panel + PPI + lock checkbox + **§31** align section) | 2869 (align section 2877)  |
 | `syncElementDOM()` (syncs image `src`, §26.5) | 3014  |
 | `bindProps()` (guarded; `len: true` entries; W/H coupling) | 3056 (lock handler 3334; **§27 reset handler 3348**)  |
@@ -1048,7 +1048,7 @@ The **as-built sections §20–§32** were re-verified against the current tree 
 | `commitPage()` / `commitProject()` | 4035 / 4044 |
 | `bindDocProps()` (incl. Grid/Baseline, export-bleed, live preview) | 4123  |
 | **§29** `#prop-doc-units` change handler (snaps grid step) | 4205-4216 |
-| `showHandles()` (`.resize-handle` + `dataset.handle`) | 4284 |
+| `showHandles()` (builds `.handle-overlay` + one `.handle-box[data-id]` per selected element; handles carry `dataset.handle` **and** `dataset.id`, since they are no longer children of `.canvas-element`) | 4774 |
 | `onPointerDown()` (guarded; `resizeOrig` incl. `lockAspect`) | 4883 |
 | `onPointerMove()` (**aspect-lock resize block**) | 5010 |
 | `snap()` call sites | 5056-5060 (endpoint), 5112-5118 (drag), 5162-5164 (resize) |
@@ -1060,7 +1060,7 @@ The **as-built sections §20–§32** were re-verified against the current tree 
 | **§29** `GRID_UNIT_LADDER` | 1494-1501 |
 | **§29** `snapLenToUnit(px, unit)` | 1505-1516 |
 | **§29** `r2(n)` | 1519 |
-| `.resize-handle` / `.selection-ghost` / `#inline-toolbar` z-index | 435 (`z-index:10`) / 447 (`z-index:50`) / 91 (`z-index:10000`) |
+| `.handle-overlay` / `.resize-handle` / `.selection-ghost` / `#inline-toolbar` z-index | 474 (`z-index:9999`) / 476 (`z-index:10`, child of overlay) / 490 (`z-index:50`) / 91 (`z-index:10000`) |
 ---
 
 ## 20. As-Built Notes — Phase 0 (implemented)
@@ -2171,7 +2171,7 @@ The mutation helpers call `saveSnapshot()` + `emit()`; the toolbar and keyboard 
 - `mkEl()` seeds `zHeight` (default `0`) and honours `opts.name` (`index.html:1799–1800`).
 - `domEl()` writes `d.style.zIndex = (el.zHeight != null ? el.zHeight : i) + 1` (`index.html:2861`).
 - `normalizeZHeights()` is called from `addElement`, `removeElement`, `dupElement`, and `refresh()`.
-- `drawThumb()` (canvas thumbnails) sorts a copy of the page's elements by `zHeight` before drawing (`index.html:2970`).
+- Page thumbnails now reuse the same renderer: `exportElementsHTML()` / `domEl()` feed a shadow-rooted, `transform: scale()`d copy of the page (`buildThumb()`, `index.html:2982`), so they inherit `zHeight` (and every other style) for free. The old `drawThumb()` canvas painter is gone.
 - `findEl()` no longer returns the last DOM node under the cursor: it walks every hit and keeps the **highest `zHeight`** (`index.html:4743`), which is required once stacking is decoupled from array/DOM order.
 - Export inherits z for free because `exportElementsHTML()` / `buildExportStage()` reuse `domEl()`.
 

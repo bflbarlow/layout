@@ -286,7 +286,7 @@ index.html
 
 #### Rendering
 - Full DOM rebuild on state changes (simpler and less error-prone)
-- Canvas rendering for page thumbnails
+- Canvas rendering for page thumbnails — now the live element renderer scaled to the sidebar (not a separate canvas painter)
 - Resize handles for selected elements
 - Rulers with grid snapping
 
