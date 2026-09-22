@@ -185,8 +185,9 @@ DPI is **not** part of unit conversion and **must not** change `pw`/`ph`. It has
 
 What DPI does **not** do:
 - It does not scale the canvas or elements while editing.
-- It does not affect HTML or PDF export, which are resolution-independent (PDF text/vectors are resolutionless; the print device rasterizes).
-- It is not needed to convert mm to px (PDF/print uses physical size directly).
+- It does not affect the HTML export, which is resolution-independent (the browser lays it out natively and the print device rasterizes).
+- It does not affect the PDF export: jsPDF embeds a raster rendered at a fixed `scale: 2`, independent of `project.dpi` (only the PNG/JPEG buttons use `dpi`).
+- It is not needed to convert mm to px (the PDF page box uses physical size directly).
 
 Add `state.project.dpi` (default `300`). Display it in the project panel with a short hint: *"Used for raster export and image resolution checks, not for page size."*
 
@@ -904,7 +905,7 @@ Ordered to keep each step independently shippable and reversible.
 | 58 | Click an align button when the element is **already** at that anchor, or when read-only | No mutation and **no undo step** is pushed (a no-op never creates dead history); read-only is a hard no-op |
 | 59 | Export a document with a long text frame to PDF, then compare the wrap points to the canvas (PDF-fidelity follow-up, §32) | Every line breaks at the same word; the exported content width equals the canvas's (`width − 2×padding`, e.g. `184` not `200`) |
 | 60 | Export a two-column frame and a rich-text frame (bold + `<p>` + paragraph spacing) | Column widths, line counts, glyph-run positions and total rendered text height are identical canvas vs export |
-| 61 | Inspect the exported HTML `<head>` | It carries the canvas's box-sizing reset + `.el-text`/`.el-content`/`.el-image` rules and the elements carry `class="canvas-element el-text"`; there is **no** external `<link>`/web-font request (self-contained, offline-identical) |
+| 61 | Inspect the exported HTML `<head>` | It carries the canvas's box-sizing reset + `.el-text`/`.el-clip`/`.el-content`/`.el-image` rules and the elements carry `class="canvas-element el-text"`; there is **no** external `<link>`/web-font request (self-contained, offline-identical) |
 
 ---
 
@@ -990,7 +991,7 @@ The **as-built sections §20–§32** were re-verified against the current tree 
 | **§31** Alignment panel markup (`#prop-align-section`, `#prop-align-target`, `#prop-align-grid`, 9 × `[data-align]`) | 936-953 |
 | Document panel markup (`#prop-doc-section` … apply-all, incl. Grid/Baseline + `#prop-doc-exportbleed`) | 1010-1033 (export-bleed 1024, apply-all 1032)  |
 | Image panel markup (`#prop-image-btn`, `#image-file-input`, **`#prop-image-lockaspect`** §26, **`#prop-image-reset-ratio`** §27, `#prop-image-ppi`) | 1035  |
-| Toolbar export buttons (`#export-btn`, `#pdf-btn`, `#png-btn`, `#jpeg-btn`) | 856  |
+| Toolbar export menu (`#btn-export` + `#export-drop` with `export-pdf/png/jpg/html` items) | 846 |
 | **§28** `#grid-toggle` / `#snap-toggle` toolbar markup | 850 / **851** |
 | **§30** `.tool-btn.snap-temp` CSS (dashed "temporarily on" outline) | 170-172 |
 | `PW, PH, GRID, …` constants | 1116  |
@@ -1040,7 +1041,7 @@ The **as-built sections §20–§32** were re-verified against the current tree 
 | `btn-new` handler (guarded; resets `state.project`) | 3802  |
 | `btn-save` handler (guarded) | 3823  |
 | `btn-import` handler (guarded) | 3831  |
-| `export-btn` / `pdf-btn` / `png-btn` / `jpeg-btn` handlers | 3912 / 3929 / 3933 / 3937 |
+| `btn-export` export-menu handler (`bindExportMenu`) | 4059 |
 | **§28** `#grid-toggle` / `#snap-toggle` click handlers | 3892 / 3899 |
 | `renderRulers()` (unit-aware; minor ticks = grid spacing) | 3957  |
 | `rulerMajorPx()` | 4023  |
@@ -1283,19 +1284,19 @@ All three Phase 4 sub-items are implemented in `index.html` (uncommitted working
 
 **Honest limitation (unchanged from §10.2):** this is a correct-looking proof, not a print-shop PDF with real trim/bleed boxes — browsers cannot set those. Multi-size documents still get a single `@page` size (browsers honour only the first).
 
-`exportPDF()` (`index.html:2368`) now sets the popup title, waits for `load` (with a 1.2s fallback guarded by a `printed` flag), then prints, and toasts "Actual size / no scaling".
+`exportPDF()` now builds a real `.pdf` file instead of opening the print dialog: for each page it builds the same DOM stage (`buildExportStage()`) the HTML export uses, rasterises it with html2canvas (`scale: 2`), and adds it to a jsPDF document (`new jsPDF(orient,'px',[ow,oh])`, `addPage` for subsequent pages), then `pdf.save(<project>.pdf)`. The vendor libraries live in `vendor/html2canvas.min.js` and `vendor/jspdf.umd.min.js` and are loaded via `<script>` tags — the same stack the Diagram project uses. The `@page`/print path now exists only for the standalone HTML export file.
 
-### 24.3 Raster PNG/JPEG (`index.html:2385`, closes §10.3)
-`exportRaster(format)`:
-1. Reads `dpi` from `project.dpi`, computes `W = round(pw*dpi/96)`, `H = round(ph*dpi/96)`; bails with a toast above 80 MPx.
-2. Builds a **detached** host `<div>` (page-sized, page background) plus a `<style>` with a minimal, self-contained CSS subset (`box-sizing`, `.canvas-element{border:0}`, `.el-content`, `.el-text`, `.el-image img`), then appends `domEl(el, i)` clones for visible elements.
-3. `new XMLSerializer().serializeToString(host)` → XHTML (the host deliberately does **not** set `xmlns` itself; the serializer adds it — setting both produced a *duplicate attribute* bug caught by the jsdom test).
-4. Wraps it in `<svg width=W height=H viewBox="0 0 pw ph"><foreignObject>…`, encodes as a `data:image/svg+xml` URL, loads it into an `Image`, and `drawImage`s onto a canvas.
-5. Downloads via `canvas.toBlob()` (fallback `toDataURL`), named `<project>-p<page>.<png|jpg>`.
+### 24.3 Raster PNG/JPEG (closes §10.3)
+`exportRaster(format)` now uses html2canvas (the SVG `<foreignObject>` path was removed):
+1. Reads `dpi` from `project.dpi`, computes `scale = dpi / PX_PER_IN`, `W = round(pw*scale)`, `H = round(ph*scale)`; bails with a toast above 80 MPx.
+2. Builds a live stage with `buildExportStage()` — the exact same markup + `exportElementCSS()` the HTML/PDF export uses.
+3. Calls `html2canvas(host, {scale, backgroundColor, width: pw, height: ph})` and downloads the resulting canvas via `canvas.toBlob()` (fallback `toDataURL`), named `<project>-p<page>.<png|jpg>`.
 
-Caveats surfaced as toasts / documented (§10.3): web fonts may not load into the SVG image, cross-origin images taint the canvas (`toBlob` throws → caught), and older Safari renders `foreignObject` poorly (`img.onerror` → "Try PDF instead").
+Shared helpers keep the three exporters from drifting: `exportElementCSS()` is the single source of the export stylesheet, `buildExportStage(pg, box)` is the single DOM builder, and `solidBg(pg)` forces an opaque background for JPEG/PDF (JPEG has no alpha channel).
 
-Two toolbar buttons were added next to HTML/PDF: `#png-btn` and `#jpeg-btn` (markup at `index.html:847`; listeners `index.html:3763`/`3780`/`3784`/`3788`). They are export-only and therefore not read-only-guarded (consistent with `#export-btn`/`#pdf-btn`).
+Caveats surfaced as toasts: cross-origin images can taint the canvas (`toBlob` throws → caught), and html2canvas cannot reproduce every CSS feature (e.g. multi-column flow/hyphenation) exactly as the browser's own layout does.
+
+The toolbar has a single **Export** button (`#btn-export`, `.tool-btn.export-btn` — the same 18px download icon and accent square the Diagram project uses, placed right after the New/Save/Import group) that opens a dropdown (`#export-drop`, `.export-item` rows) with four format options — PDF (all pages, jsPDF download), PNG and JPG (current page at project DPI), and HTML (standalone print file). This mirrors the Diagram project's export menu. The menu is `position:fixed` so the toolbar's `overflow-x:auto` cannot clip it; `bindExportMenu()` positions it at `br.left + br.width - 200` / `br.bottom` (the Diagram formula), toggles `.visible`/`aria-expanded`, closes on outside-click and Escape, and dispatches each item to `exportPDF()`/`exportRaster()`/`exportHTMLFile()`. Export is not read-only-guarded (consistent with the previous export buttons).
 
 ### 24.4 Image PPI warning (closes §10.3 last paragraph)
 - `imagePPI(el)` (`index.html:2334`) = `naturalWidth / (el.w / PX_PER_IN)`, or `null` when the element is not an image or the rendered `<img>` is not found. **Never affects geometry** (§4).
@@ -1308,13 +1309,14 @@ Two toolbar buttons were added next to HTML/PDF: `#png-btn` and `#jpeg-btn` (mar
 ### 24.6 Verification performed
 - `node --check` on all inline scripts: clean.
 - Harness suite `phase4`: **26 assertions, all pass** — `exportBox` off/on, crop-mark count/guard, per-element `+off` (text/line/`<line>` endpoints), `@page` inches (850px → 8.8542in; with 9px bleed → 9.0417in), page background, no guides/grid, `print-color-adjust`, panel round-trip + read-only block, `imagePPI` null cases, `normalizeProject` export defaults/coercion, and `exportPDF`/`exportRaster` not throwing.
-- **Real-DOM integration test** (jsdom, `/tmp/jsdom_test.js`): **25 assertions, all pass** — `exportHTML` parses as HTML (rich text, drop-cap class, `dir`, `rgba()` stroke, image `src` preserved); bleed output parses with 8 crop marks; `exportRaster`'s SVG data URL **parses as well-formed XML**, correct `viewBox`/300-DPI dimensions, 3 `.canvas-element` clones, page background, no element border, and well-formed `foreignObject` content. This test is what caught the duplicate-`xmlns` bug (§24.3 step 3).
+- **Real-DOM integration test** (jsdom): `exportHTML` parses as HTML (rich text, drop-cap class, `dir`, `rgba()` stroke, image `src` preserved); bleed output parses with 8 crop marks.
+- **Headless-Chromium smoke test** (after the html2canvas switch): opening `#btn-export` shows all four `.export-item`s, positions the menu under the button, sets `aria-expanded`, and closes on outside-click. Choosing the PNG/JPG items renders an 850×1100 stage at scale 3.125 (300 DPI → 2656×3437 canvas) and downloads an `image/png` / `image/jpeg` blob; the PDF item renders at scale 2 (1700×2200), creates `new jsPDF('p','px',[850,1100])`, calls `addImage(...)` and `save(...)`; the HTML item downloads a `text/html` blob. No console errors.
 - Phase 1/2/3 suites unchanged (29/29, 21/21, 37/37); all six load modes `errors=0`, `buildV=2`.
 - `state.readOnly` reference count: 47 → **48**.
 
 ### 24.7 Known limitations / follow-ups
-- Bleed export is a **proof**, not a press-ready PDF (no real TrimBox/BleedBox) — inherent to the browser-print path.
-- Raster fidelity depends on `foreignObject`: fonts and cross-origin images are the usual failure modes; the PDF path is the documented fallback.
+- Bleed export is a **proof**, not a press-ready PDF (no real TrimBox/BleedBox) — bleed is drawn as an expanded page plus crop marks in the raster.
+- Raster/PDF fidelity depends on html2canvas: cross-origin images and advanced CSS (multi-column, hyphenation) are the usual failure modes; the HTML export (browser-native layout) remains the pixel-perfect fallback.
 - No manual browser pass yet (harness + jsdom are headless); a visual check of crop-mark weight and raster output in a real browser is recommended.
 - `@page` is single-size; multi-size documents print at the first page's size.
 
@@ -1901,12 +1903,14 @@ The `:not(.active)` guard means the dashed outline only appears when the master 
 
 ### 30.5 Interaction with the existing Shift bindings
 
-Shift was already used for two other things, and neither collides because neither routes through `snap()`:
+Shift was already used for other things, and none collides because none routes through `snap()`:
 
 | Existing Shift use | Location | Interaction |
 |---|---|---|
+| Lock the move axis (horizontal/vertical) | `onPointerMove()`, drag branch | Unaffected: applies to moving an element body, after `snap()` has run. |
 | Constrain aspect ratio while resizing (also forced by `lockAspect`, §26) | `onPointerMove()`, `index.html:5069-5088` | Composes: holding Shift now also *snaps* the resize, which is what you want when constraining to a grid-friendly ratio. The ratio-preserving dimension is still snapped-after-constraint (§26.4). |
-| Constrain line-draw to 15° increments | `onPointerMove()`, `index.html:5111` | Unaffected: the line-draw branch runs before the drag branch and never calls `snap()`. |
+| Constrain line-draw to 15° increments | `onPointerMove()`, line-draw branch | Unaffected: the line-draw branch runs before the drag branch and never calls `snap()`. |
+| Constrain a **line-endpoint** drag to 15° increments from the opposite end | `onPointerMove()`, endpoint-dragging branch | Replaces the grid `snap()` for the duration of the drag: the dragged end keeps its distance from the fixed end and its angle snaps to the nearest 15°. Mirrors the line-draw constraint. See `PROJECT_PAGE_PROPS.md` §30.5. |
 | `Shift+Arrow` = large arrow-key nudge | `onKey()`, `index.html:5266-5275` | Unaffected: arrow nudging deliberately does **not** consult `snap()` (§28.8). |
 
 Note the pre-existing local variable `snap` (the constrained angle) inside the line-draw block shadows the global `snap()` function; it is scoped to that block and is unrelated to this feature.
@@ -2094,7 +2098,7 @@ function exportElementsHTML(pg, off) {
 
 `domEl()` writes `left`/`top` for **every** element type (lines use their min corner), so the `parseFloat` bleed shift is safe for text, images, shapes and lines alike.
 
-`exportHTML()` then ships the **same rules the canvas uses** in its embedded `<style>` (`index.html:2415-2424`): the global reset, `.canvas-element{position:absolute;border:1px solid transparent}`, `.el-text`, `.el-content`, `.el-image` / `.el-image img`, and `.drop-cap::first-letter`. Because the markup and the stylesheet both come from the canvas side, the print layout and the screen layout are produced by the same code path.
+`exportHTML()` then ships the **same rules the canvas uses** in its embedded `<style>` (`index.html:2415-2424`): the global reset, `.canvas-element{position:absolute;border:1px solid transparent}`, `.el-text`, `.el-clip`, `.el-content`, `.el-image` / `.el-image img`, and `.drop-cap::first-letter`. Because the markup and the stylesheet both come from the canvas side, the print layout and the screen layout are produced by the same code path.
 
 The dead **Google-Fonts `<link>` was removed**. The app only offers six families (Georgia, Times New Roman, Arial, Helvetica Neue, Courier New, system-ui), all locally installed, and the canvas loads no web fonts at all. A `<link>` could only (a) block the print on a slow/offline request, or (b) — if a saved document carried a custom `font-family` — download a face the canvas never had, re-breaking the match. The export is now self-contained.
 
@@ -2109,7 +2113,7 @@ Element markup now has a **single source of truth**. Any future change to `domEl
 | `exportElementsHTML()` (now `domEl()`-based) | `index.html:2380` |
 | `exportHTML()` (mirror CSS block) | `index.html:2396` (CSS 2415-2424) |
 | `styleTextBox()` / `domEl()` (the canvas renderers) | `index.html:2609` / `2641` |
-| Canvas rules mirrored: `.el-content` / `.el-text` / `.el-image` | `index.html:102` / `444` / `445-446` |
+| Canvas rules mirrored: `.el-content` / `.el-text` / `.el-clip` / `.el-image` | `index.html:102` / `444` / `474` / `445-446` |
 | `exportPDF()` (writes `exportHTML()`, prints on load) | `index.html:2486` |
 | `exportRaster()` (already `domEl()`-based) | `index.html:2503` |
 
@@ -2129,5 +2133,80 @@ Element markup now has a **single source of truth**. Any future change to `domEl
 
 ---
 
+## 33. As-Built Notes — Unique z-height & element naming (follow-up)
 
-*End of draft — this is a starting point, not a final spec. Phases 0–4 are implemented (§20–§24) plus the margin-indicator (§21.2), image-aspect-ratio (§25), image aspect-lock (§26), reset-to-original-ratio (§27), snapping master switch (§28), unit-aware grid step (§29), momentary snapping (§30), shape-alignment panel (§31), and PDF pixel fidelity (§32) follow-ups; §18 records the resolved open questions. See §0 for the technical review pass and the corrections it produced.*
+### 33.1 Motivation
+
+Layout's stacking order used to be the **array order** of `page.elements` alone: `domEl()` wrote `z-index = i + 1`, and the Layers panel simply reversed the array. There was no way to name an element, and the four z actions only moved an element to either end of the array (front/back), never a step. This follow-up ports the **diagram project's** z-height model and adds editable names. It, along with the other work in this session (right-drag pan, horizontal-only align, the reworked Shift bindings, unclipped text-box handles, larger resize hit targets, and the single export menu), ships as **v0.4.0**.
+
+### 33.2 The invariant: no two elements share a zHeight
+
+Every element carries an integer `zHeight`. The invariant, mirroring the diagram tool, is:
+
+- `zHeight` values on a page are **dense, unique ranks `0..N-1`** (0 = bottom of the stack).
+- Rendering derives `z-index = zHeight + 1` (1-based, because 0 is falsy in some engines), so **array order no longer decides stacking** — only `zHeight` does.
+- The invariant is re-imposed (`normalizeZHeights()`) on every structural change and on `refresh()`, so it is idempotent and cannot drift.
+
+Legacy projects (no `zHeight`) are backfilled in `normalizeProject()` by array index (`el.zHeight = idx`), so an old file loads with its original visual stacking intact.
+
+### 33.3 Z-order helpers
+
+A dedicated block replaces the old `bringForward`/`sendBackward` pair:
+
+| Function | Purpose | Anchor |
+|---|---|---|
+| `zElementList()` | Page elements as `{obj,id,z,order}`, sorted by `(z, arrayIndex)` | `index.html:1919` |
+| `normalizeZHeights()` | Dense re-rank `0..N-1` in current stack order; idempotent | `index.html:1935` |
+| `computeZOrder()` | id → 1-based z-index map for renderers | `index.html:1940` |
+| `zElementRank(id)` | Current 0-based rank of an element, or `-1` | `index.html:1946` |
+| `moveZToRank(id, rank)` | Splice to a rank (clamped), re-densify; returns `false` when absent | `index.html:1954` |
+| `zLabel(id)` | `name` fallback `id` | `index.html:1966` |
+| `bringToFront` / `sendToBack` | Move to last / first rank | `index.html:1971` / `1978` |
+| `bringForward` / `sendBackward` | One rank up / down (no-op at the ends) | `index.html:1985` / `1993` |
+
+The mutation helpers call `saveSnapshot()` + `emit()`; the toolbar and keyboard iterate the current selection and invoke them once per selected element.
+
+### 33.4 Render & hit-test integration
+
+- `mkEl()` seeds `zHeight` (default `0`) and honours `opts.name` (`index.html:1799–1800`).
+- `domEl()` writes `d.style.zIndex = (el.zHeight != null ? el.zHeight : i) + 1` (`index.html:2861`).
+- `normalizeZHeights()` is called from `addElement`, `removeElement`, `dupElement`, and `refresh()`.
+- `drawThumb()` (canvas thumbnails) sorts a copy of the page's elements by `zHeight` before drawing (`index.html:2970`).
+- `findEl()` no longer returns the last DOM node under the cursor: it walks every hit and keeps the **highest `zHeight`** (`index.html:4743`), which is required once stacking is decoupled from array/DOM order.
+- Export inherits z for free because `exportElementsHTML()` / `buildExportStage()` reuse `domEl()`.
+
+### 33.5 Naming
+
+- `mkEl()` defaults to a random `Type NN` name, but `opts.name` wins, so `dupElement()`'s `Name copy` is preserved.
+- **Properties ▸ Name** (`#prop-name`, `index.html:969`): `updateProps()` reflects it (guarded by `document.activeElement` so typing is not clobbered); the `input` handler writes `updEl(id,{name})` for every selected element, re-renders the Layers panel, marks the project dirty and schedules an autosave; `blur` normalises the field from state and takes one undo snapshot.
+- **Layers panel** (`renderLayers()`, `index.html:3013`): each row shows the name; **double-click renames in place** via `startLayerRename()` (`index.html:3124`) — commit on Enter/blur, revert on Esc.
+- Both entry points stay in sync because they write the same `el.name` and each triggers `renderLayers()`.
+
+### 33.6 Layers-panel z field
+
+Each row carries a `.layer-z` number input showing the element's rank. Changing it calls `moveZToRank(eid, value)` (clamped), then `saveSnapshot()` + `emit()`. The list keeps its **long-standing top-first order** (highest `zHeight` at the top), so the About-page tip "elements at the top of the list appear in front" remains true — unlike the diagram tool, whose list is bottom-first. The Properties panel gained a matching **`Z`** number field next to W/H (`#prop-z`, `index.html:971`); its `change` handler runs the same `moveZToRank` for every selected element.
+
+Rows are also **drag-to-reorder** (`item.draggable = true`). During `dragover` the dragged row is moved live in the DOM (top half of a target inserts above it, bottom half below); `drop` (bound once on the list, so it also works on empty space) reads the final DOM order and hands it to `applyLayerOrder(idsTopFirst)` (`index.html:2011`), which sets `rank = N-1-domIndex`, re-densifies and records one undo snapshot. `dragend` then `emit()`s to rebuild from state, or calls `renderLayers()` to restore the DOM when the drag was cancelled (no drop). Dragging is suppressed in read-only mode and when the gesture starts on the z input, the visibility toggle, or an in-progress rename (`mousedown` sets a `dragBlocked` flag).
+
+### 33.7 Toolbar & shortcuts
+
+The old two-button group (front/back) became four buttons — **Bring to front / Bring forward / Send backward / Send to back** (`#bring-front`, `#bring-forward`, `#send-backward`, `#send-back`, `index.html:876–879`), bound at `index.html:4251–4261`. Keyboard (`onKey`, `index.html:5757–5766`): `Ctrl+]` / `Ctrl+[` step, `Ctrl+Shift+]` / `Ctrl+Shift+[` jump to front/back. On US layouts `Shift+]` produces `}`, so both `}`/`{` are accepted.
+
+### 33.8 Verification (headless Chromium)
+
+- **Invariant:** the default project renders 8 elements with DOM `z-index` `1..8`, all unique; the Layers panel shows unique ranks; a legacy project (3 elements, no `zHeight`) loads with `z-index` `1/2/3` and names preserved.
+- **Reordering:** select the first element → `#bring-front` → rank 7/7; `#send-backward` → 6; `#bring-forward` → 7; `#send-back` → 0; `Ctrl+]` → 1; `Ctrl+Shift+{` → 0. Uniqueness holds after every step.
+- **Layers z input:** setting a row's z to `N-1` moves that element to the top (`z-index = N`); out-of-range `999`/`-5` clamp to top/bottom.
+- **Naming:** double-click rename writes `Hero Title` to both the layer list and `#prop-name`; typing in `#prop-name` updates the layer list live.
+- **Selection:** pointer-down on the last-created element selects it (z-aware `findEl`), and `node --check` is clean with **no console errors** on load or export.
+
+### 33.9 Known limitations / notes
+
+- The **Layers list order is top-first** (layout's existing convention), not bottom-first as in the diagram tool; the z numbers therefore read high-to-low down the list. Only the *mechanism* (unique, editable ranks) was ported.
+- Multi-element toolbar/keyboard reordering applies front/back one element at a time in selection order, so a multi-selection is re-stacked in selection order rather than as a group. Single-selection behaviour — the common case — is exact.
+- §30 ("momentary snapping") is now **historical**: the momentary `state.snapTemp` flag it describes was removed; §30.5 already records the surviving `Shift` bindings (move axis-lock, resize ratio-lock, line-draw / line-end 15° snap).
+
+---
+
+
+*End of draft — this is a starting point, not a final spec. Phases 0–4 are implemented (§20–§24) plus the margin-indicator (§21.2), image-aspect-ratio (§25), image aspect-lock (§26), reset-to-original-ratio (§27), snapping master switch (§28), unit-aware grid step (§29), momentary snapping (§30, now historical), shape-alignment panel (§31), PDF pixel fidelity (§32), and unique z-height & element naming (§33) follow-ups; §18 records the resolved open questions. See §0 for the technical review pass and the corrections it produced.*

@@ -98,7 +98,7 @@ The right-side Properties panel must expose all text controls in a clean, organi
 - **Rich text preserved in export** — The exported standalone HTML file must retain all inline formatting, fonts, colors, spacing, and styles.
 - **Linked text boxes reflow** — If text threading is used, the exported file must preserve the flow.
 - **Font embedding** — Option to inline web-safe fonts or embed Google Fonts links in the export.
-- **Print-ready output** — Consider adding PDF export via browser print or a library.
+- **Print-ready output** — PDF export is implemented with html2canvas + jsPDF (the same stack as the Diagram project); the standalone HTML export remains available for browser-native print.
 
 ### ═══════════════════════════════════════════
 ### 9. Quality of Life
@@ -165,7 +165,8 @@ That's it. No `npm install`, no `node server`, no setup.
 - **Resize** — Drag handles on selected elements (8-point resize)
 - **Drag to move** — Click and drag any element to reposition it
 - **Align** — Left, center, and right alignment for selected elements
-- **Layer ordering** — Bring to front / send to back
+- **Layer ordering** — Unique z-height per element (no two share a rank): drag rows in the Layers panel, use Bring Forward / Send Backward, or Bring to Front / Send to Back (toolbar or `Ctrl+]`/`Ctrl+[`, with `Shift` for front/back). Reorder from the Layers panel or the Properties **Z** field.
+- **Naming** — Rename an element from the Properties **Name** field or by double-clicking its name in the Layers panel; names appear beside every layer.
 
 ### Rich Text Editing
 - **Inline editing** — Double-click any text box to edit directly on the canvas
@@ -237,6 +238,8 @@ That's it. No `npm install`, no `node server`, no setup.
 | `Delete` | Delete selected |
 | `Escape` | Deselect |
 | `Ctrl+F` | Find & replace |
+| `Ctrl+]` / `Ctrl+[` | Bring forward / Send backward |
+| `Ctrl+Shift+]` / `Ctrl+Shift+[` | Bring to front / Send to back |
 | `Ctrl+K` | Insert hyperlink |
 | `Ctrl+Shift+L/E/R` | Align left/center/right |
 | `Ctrl+Shift+B` | Unordered list |

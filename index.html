@@ -167,12 +167,31 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 }
 .tool-btn:hover{background:var(--color-border);color:var(--color-text)}
 .tool-btn.active{background:var(--color-accent);color:#FFFFFF}
-/* Momentary snapping: Shift held while the master switch is off. A dashed accent
-   outline reads as "temporarily on" without claiming the latched on-state. */
-.tool-btn.snap-temp:not(.active){outline:2px dashed var(--color-accent);outline-offset:-3px;color:var(--color-accent)}
 .tool-btn.primary{background:var(--color-accent);color:#FFFFFF;padding:var(--space-2) var(--space-4);width:auto;gap:var(--space-2);font-weight:500}
 .tool-btn.primary:hover{background:var(--color-accent-hover)}
 .tool-btn:disabled{color:var(--color-text-disabled);cursor:not-allowed;opacity:1}
+
+/* Export dropdown — one toolbar button, format options inside (mirrors Diagram) */
+.export-wrap{position:relative}
+.export-btn{background:var(--color-accent);color:#FFFFFF}
+.export-btn:hover{background:var(--color-accent-hover);color:#FFFFFF}
+.export-drop{
+  position:fixed;margin-top:var(--space-1);
+  background:var(--color-surface);border:1px solid var(--color-border);
+  border-radius:var(--radius-md);padding:var(--space-1);
+  display:none;flex-direction:column;z-index:3000;min-width:230px;
+  box-shadow:var(--shadow-md)
+}
+.export-drop.visible{display:flex}
+.export-item{
+  display:flex;align-items:center;justify-content:space-between;gap:var(--space-4);
+  min-height:40px;padding:var(--space-2) var(--space-3);
+  font-size:var(--text-sm);color:var(--color-text);
+  cursor:pointer;border-radius:var(--radius-sm);user-select:none;white-space:nowrap
+}
+.export-item:hover,.export-item:focus-visible{background:var(--color-bg-subtle);color:var(--color-accent);outline:none}
+.export-item-sub{color:var(--color-text-muted);font-size:var(--text-xs)}
+.export-item:hover .export-item-sub{color:inherit}
 
 /* Text toolbar controls (removed — now in properties panel) */
 
@@ -373,6 +392,12 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .align-btn:hover{background:var(--color-bg-subtle);color:var(--color-text)}
 .align-btn:active{background:var(--color-accent);border-color:var(--color-accent);color:#FFFFFF}
 .align-btn svg{width:16px;height:16px;display:block}
+/* Horizontal-only snap: one control, cycles left/center/right, never moves y. */
+.align-h-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:38px;margin-top:6px;padding:0 10px;border:1px solid var(--color-border);border-radius:var(--radius-sm);background:var(--color-surface);color:var(--color-text);cursor:pointer;font-family:inherit;font-size:var(--text-xs);transition:background .1s,border-color .1s,color .1s}
+.align-h-btn:hover{background:var(--color-bg-subtle)}
+.align-h-btn:active{background:var(--color-accent);border-color:var(--color-accent);color:#FFFFFF}
+.align-h-btn svg{width:16px;height:16px;display:block}
+.align-h-hint{display:block;margin-top:4px;font-size:10px;color:var(--color-text-disabled);text-align:center}
 .prop-row{display:flex;gap:var(--space-2);margin-bottom:var(--space-2);align-items:center}
 .prop-row label{display:flex;align-items:center;gap:var(--space-1);flex:1;font-size:var(--text-xs);color:var(--color-text-muted)}
 .prop-row label input,.prop-row label select,.prop-row label textarea{flex:1;background:var(--color-surface);border:1px solid var(--color-border);color:var(--color-text);padding:var(--space-1) var(--space-2);border-radius:var(--radius-sm);font-size:var(--text-base);min-height:44px}
@@ -399,9 +424,15 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .layer-item{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-2) var(--space-2);border-radius:var(--radius-sm);cursor:pointer;font-size:var(--text-xs);color:var(--color-text-muted);transition:all .1s;min-height:44px}
 .layer-item:hover{background:var(--color-border)}
 .layer-item.active{background:var(--color-accent-soft);color:var(--color-accent)}
-.layer-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.layer-item.dragging{opacity:.4}
+.layer-item.drag-over-top{box-shadow:inset 0 2px 0 var(--color-accent)}
+.layer-item.drag-over-bottom{box-shadow:inset 0 -2px 0 var(--color-accent)}
+.layer-icon{width:16px;height:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:grab}
 .layer-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .layer-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.layer-name.renaming{overflow:visible;text-overflow:clip;white-space:normal;outline:2px solid var(--color-accent);outline-offset:1px;border-radius:2px;cursor:text}
+.layer-z{width:48px;height:26px;min-width:48px;flex-shrink:0;background:var(--color-surface);border:1px solid var(--color-border);border-radius:var(--radius-sm);color:var(--color-text);font-size:12px;text-align:center;padding:1px}
+.layer-z:focus{border-color:var(--color-accent);outline:none}
 .layer-visibility{min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:.4;border-radius:var(--radius-sm)}
 .layer-visibility:hover{opacity:.8}
 .layer-visibility.hidden{opacity:.2}
@@ -432,18 +463,23 @@ input,select,textarea,button{font-family:inherit;font-size:inherit;color:inherit
 .canvas-element.selected{border-color:var(--color-accent);box-shadow:0 0 0 1px var(--color-accent)}
 .canvas-element[data-type="line"]{border:transparent !important;box-shadow:none !important}
 .canvas-element[data-type="line"].selected svg line{stroke:var(--color-accent) !important;stroke-width:2.5px}
-.resize-handle{position:absolute;width:10px;height:10px;background:var(--color-surface);border:1.5px solid var(--color-accent);border-radius:2px;z-index:10}
-.resize-handle.nw{top:-5px;left:-5px;cursor:nw-resize}
-.resize-handle.ne{top:-5px;right:-5px;cursor:ne-resize}
-.resize-handle.sw{bottom:-5px;left:-5px;cursor:sw-resize}
-.resize-handle.se{bottom:-5px;right:-5px;cursor:se-resize}
-.resize-handle.n{top:-5px;left:50%;margin-left:-5px;cursor:n-resize}
-.resize-handle.s{bottom:-5px;left:50%;margin-left:-5px;cursor:s-resize}
-.resize-handle.w{top:50%;left:-5px;margin-top:-5px;cursor:w-resize}
-.resize-handle.e{top:50%;right:-5px;margin-top:-5px;cursor:e-resize}
+/* Resize handles: the element is a generous transparent hit area (22×22px);
+   the small visible square is drawn by ::after so the target is much easier to
+   grab without making the chrome look heavy. See PROJECT_PAGE_PROPS §7.2. */
+.resize-handle{position:absolute;width:22px;height:22px;background:transparent;border:none;z-index:10}
+.resize-handle::after{content:"";position:absolute;top:50%;left:50%;width:13px;height:13px;box-sizing:border-box;transform:translate(-50%,-50%);background:var(--color-surface);border:1.5px solid var(--color-accent);border-radius:2px}
+.resize-handle.nw{top:-11px;left:-11px;cursor:nw-resize}
+.resize-handle.ne{top:-11px;right:-11px;cursor:ne-resize}
+.resize-handle.sw{bottom:-11px;left:-11px;cursor:sw-resize}
+.resize-handle.se{bottom:-11px;right:-11px;cursor:se-resize}
+.resize-handle.n{top:-11px;left:50%;margin-left:-11px;cursor:n-resize}
+.resize-handle.s{bottom:-11px;left:50%;margin-left:-11px;cursor:s-resize}
+.resize-handle.w{top:50%;left:-11px;margin-top:-11px;cursor:w-resize}
+.resize-handle.e{top:50%;right:-11px;margin-top:-11px;cursor:e-resize}
 .el-text{white-space:pre-wrap;word-break:break-word;min-width:20px;min-height:20px}
-.el-image{overflow:hidden}
-.el-image img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.el-clip{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box}
+.el-image{overflow:visible}
+.el-image img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;border-radius:inherit}
 .selection-ghost{position:absolute;border:1.5px dashed var(--color-accent);pointer-events:none;z-index:50}
 
 /* ==========================================================================
@@ -814,6 +850,15 @@ body.read-only-mode .toolbar{cursor:not-allowed}
     <button class="tool-btn" id="btn-new" title="New Project"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg></button>
     <button class="tool-btn save-btn" id="btn-save" title="Save Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg><span class="save-dot" id="save-dot" style="display:none"></span></button>
     <button class="tool-btn" id="btn-import" title="Import Project (.json)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg></button>
+    <div class="export-wrap">
+      <button class="tool-btn export-btn" id="btn-export" aria-label="Export" aria-haspopup="true" aria-expanded="false" aria-controls="export-drop" title="Export"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></button>
+      <div class="export-drop" id="export-drop" role="menu" aria-label="Export format">
+        <div class="export-item" role="menuitem" tabindex="0" data-action="export-pdf"><span>PDF</span><span class="export-item-sub">all pages · .pdf download</span></div>
+        <div class="export-item" role="menuitem" tabindex="0" data-action="export-png"><span>PNG</span><span class="export-item-sub">current page · project DPI</span></div>
+        <div class="export-item" role="menuitem" tabindex="0" data-action="export-jpg"><span>JPG</span><span class="export-item-sub">current page · project DPI</span></div>
+        <div class="export-item" role="menuitem" tabindex="0" data-action="export-html"><span>HTML</span><span class="export-item-sub">standalone print file</span></div>
+      </div>
+    </div>
   </div>
 
   <div class="toolbar-divider"></div>
@@ -831,8 +876,10 @@ body.read-only-mode .toolbar{cursor:not-allowed}
   <div class="toolbar-group">
     <button class="tool-btn" id="dup-btn" aria-label="Duplicate (Ctrl+D)" title="Duplicate (Ctrl+D)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 00-2-2H6a2 2 0 00-2 2v8a2 2 0 002 2h2"/></svg></button>
     <button class="tool-btn" id="del-btn" aria-label="Delete selected (Delete)" title="Delete (Del)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 011-1h4a1 1 0 011 1v2"/></svg></button>
-    <button class="tool-btn" id="bring-front" aria-label="Bring to front" title="Bring to Front"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1"/><rect x="4" y="4" width="12" height="12" rx="1"/></svg></button>
-    <button class="tool-btn" id="send-back" aria-label="Send to back" title="Send to Back"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="1"/><rect x="8" y="8" width="12" height="12" rx="1"/></svg></button>
+    <button class="tool-btn" id="bring-front" aria-label="Bring to front" title="Bring to Front (Ctrl+Shift+])"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="1"/><rect x="4" y="4" width="12" height="12" rx="1"/></svg></button>
+    <button class="tool-btn" id="bring-forward" aria-label="Bring forward" title="Bring Forward (Ctrl+])"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l5 5h-3v7H10V9H7z"/></svg></button>
+    <button class="tool-btn" id="send-backward" aria-label="Send backward" title="Send Backward (Ctrl+[)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20l-5-5h3v-7h4v7h3z"/></svg></button>
+    <button class="tool-btn" id="send-back" aria-label="Send to back" title="Send to Back (Ctrl+Shift+[)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="12" height="12" rx="1"/><rect x="8" y="8" width="12" height="12" rx="1"/></svg></button>
   </div>
 
   <div class="toolbar-divider"></div>
@@ -848,16 +895,9 @@ body.read-only-mode .toolbar{cursor:not-allowed}
     <button class="tool-btn" id="zoom-in" aria-label="Zoom in" title="Zoom In"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg></button>
     <button class="tool-btn" id="reset-view" aria-label="Reset view" title="Reset View"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 109 9M3 3v4h4M3 3l4 4"/><path d="M21 12a9 9 0 01-9 9"/><path d="M21 3v4h-4M21 3l-4 4"/></svg></button>
     <button class="tool-btn" id="grid-toggle" aria-label="Toggle grid" title="Toggle Grid"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg></button>
-    <button class="tool-btn active" id="snap-toggle" aria-label="Toggle snapping" aria-pressed="true" title="Toggle Snapping (S) — hold Shift to snap temporarily"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2" fill="currentColor"/><circle cx="20" cy="4" r="2" fill="currentColor"/><circle cx="4" cy="20" r="2" fill="currentColor"/><circle cx="20" cy="20" r="2" fill="currentColor"/><line x1="6" y1="4" x2="18" y2="4" stroke-dasharray="2 2"/><line x1="4" y1="6" x2="4" y2="18" stroke-dasharray="2 2"/></svg></button>
+    <button class="tool-btn active" id="snap-toggle" aria-label="Toggle snapping" aria-pressed="true" title="Toggle Snapping (S) — hold Shift to lock the horizontal/vertical axis while moving, keep width:height ratio while resizing, or snap a line end to 15° increments"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="4" cy="4" r="2" fill="currentColor"/><circle cx="20" cy="4" r="2" fill="currentColor"/><circle cx="4" cy="20" r="2" fill="currentColor"/><circle cx="20" cy="20" r="2" fill="currentColor"/><line x1="6" y1="4" x2="18" y2="4" stroke-dasharray="2 2"/><line x1="4" y1="6" x2="4" y2="18" stroke-dasharray="2 2"/></svg></button>
   </div>
 
-  <div class="toolbar-divider"></div>
-  <div class="toolbar-group">
-    <button class="tool-btn primary" id="export-btn" aria-label="Export HTML" title="Export HTML"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> HTML</button>
-    <button class="tool-btn" id="pdf-btn" aria-label="Export PDF" title="Export PDF"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> PDF</button>
-    <button class="tool-btn" id="png-btn" aria-label="Export PNG" title="Export current page as PNG at the project DPI"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> PNG</button>
-    <button class="tool-btn" id="jpeg-btn" aria-label="Export JPEG" title="Export current page as JPEG at the project DPI"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> JPG</button>
-  </div>
 </header>
 
 <!-- Read-only banner (shown when another tab is editing) -->
@@ -929,8 +969,9 @@ body.read-only-mode .toolbar{cursor:not-allowed}
       <div class="tab-panel active" id="properties-panel" role="tabpanel" aria-labelledby="properties-tab">
         <div class="panel-section" id="prop-pos-section"><button class="panel-toggle"><h4>Position</h4><svg class="chevron" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></button>
 <div class="panel-body">
+          <div class="prop-row"><label style="flex:1">Name <input type="text" id="prop-name" value="" placeholder="Untitled" aria-label="Element name" style="flex:1;min-width:0"></label></div>
           <div class="prop-row"><label>X <input type="number" id="prop-x" value="0" aria-label="Position X"></label><label>Y <input type="number" id="prop-y" value="0" aria-label="Position Y"></label></div>
-          <div class="prop-row"><label>W <input type="number" id="prop-w" value="100" aria-label="Width"></label><label>H <input type="number" id="prop-h" value="100" aria-label="Height"></label></div>
+          <div class="prop-row"><label>W <input type="number" id="prop-w" value="100" aria-label="Width"></label><label>H <input type="number" id="prop-h" value="100" aria-label="Height"></label><label>Z <input type="number" id="prop-z" value="0" min="0" style="width:52px" aria-label="Z position"></label></div>
         </div>
         </div>
         <div class="panel-section" id="prop-align-section" style="display:none">
@@ -949,6 +990,9 @@ body.read-only-mode .toolbar{cursor:not-allowed}
             <button class="align-btn" data-align="bc" title="Align bottom center" aria-label="Align bottom center"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="8" y="13" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
             <button class="align-btn" data-align="br" title="Align bottom right" aria-label="Align bottom right"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" stroke="currentColor" stroke-width="1.5" stroke-opacity="0.35"/><rect x="13" y="13" width="8" height="8" rx="1" fill="currentColor"/></svg></button>
           </div>
+          <!-- Single horizontal-only snap: keeps every element's y exactly, only changes x. -->
+          <button class="align-h-btn" id="prop-align-h" type="button"></button>
+          <span class="align-h-hint">Click to cycle: Center → Left → Right</span>
         </div>
         </div>
         <div class="panel-section" id="prop-text-section" style="display:none">
@@ -1062,7 +1106,7 @@ body.read-only-mode .toolbar{cursor:not-allowed}
   <span id="status-tool">Select Tool</span>
   <span id="status-pos">0, 0</span>
   <span id="status-page">Page 1 of 1</span>
-  <span class="lp-version">v0.3.0</span>
+  <span class="lp-version">v0.4.0</span>
 </div>
 
 <!-- =========================================================================
@@ -1103,6 +1147,11 @@ body.read-only-mode .toolbar{cursor:not-allowed}
      Toast container
      ========================================================================= -->
 <div class="lp-toast-container" id="lp-toast-container" aria-live="polite"></div>
+
+<!-- Export libraries (same stack as the diagram project): html2canvas rasterises
+     the page DOM, jsPDF writes a real downloadable PDF with no print dialog. -->
+<script src="vendor/html2canvas.min.js"></script>
+<script src="vendor/jspdf.umd.min.js"></script>
 
 <script>
 (function() {
@@ -1319,7 +1368,12 @@ function normalizeProject(d) {
     /* Documents saved before the Image panel's aspect lock existed: default
        images to locked (matches mkEl()'s default for newly inserted images). */
     if (Array.isArray(pg.elements)) {
-      pg.elements.forEach(function(el) {
+      pg.elements.forEach(function(el, idx) {
+        if (el && el.zHeight == null) el.zHeight = idx;
+        if (el && !el.name) {
+          var t = el.type || 'element';
+          el.name = t.charAt(0).toUpperCase() + t.slice(1) + ' ' + (idx + 1);
+        }
         if (el && el.type === 'image' && el.lockAspect == null) el.lockAspect = true;
       });
     }
@@ -1446,8 +1500,8 @@ var state = {
   pinchStart: null,
   showGrid: true,
   snapEnabled: true,
-  snapTemp: false,
   alignTarget: 'page',
+  hAlign: 'c',
   editingElementId: null,
   readOnly: false,
   autoSaveFileHandle: null,
@@ -1548,7 +1602,7 @@ function guideTargets(p, axis) {
    only rounded to a whole CSS px, so dragging is free. */
 var GUIDE_SNAP_TOL = 6;
 function snap(v, axis) {
-  if (!snapActive()) return Math.round(v);
+  if (!state.snapEnabled) return Math.round(v);
   var gs = gridSpacing();
   var gridV = r2(Math.round(v / gs) * gs);
   if (!axis || !state.project || !state.project.guides || !state.project.guides.snapToGuides) return gridV;
@@ -1570,22 +1624,6 @@ function setSnapEnabled(on, quiet) {
   }
   localStorage.setItem('lp-snap', state.snapEnabled ? '1' : '0');
   if (!quiet) showToast('Snapping ' + (state.snapEnabled ? 'on' : 'off'));
-}
-
-/* Momentary snapping — hold Shift to snap while the master switch is off.
-   `snapTemp` is transient view state, exactly like `snapEnabled`: never saved
-   with the project, never pushed onto the undo stack, and usable in read-only
-   mode. It is cleared on keyup, window blur and tab hide so it can never get
-   stuck on when the keyup is delivered elsewhere. */
-function snapActive() {
-  return !!(state.snapEnabled || state.snapTemp);
-}
-function setSnapTemp(on) {
-  on = !!on;
-  if (state.snapTemp === on) return;
-  state.snapTemp = on;
-  var b = $('snap-toggle');
-  if (b) b.classList.toggle('snap-temp', on);
 }
 
 /* --------------- Coordinate helpers (zoom/pan aware) --------------- */
@@ -1765,7 +1803,8 @@ function mkEl(type, opts) {
     radius: o.radius || 0,
     rotation: o.rotation || 0,
     visible: true,
-    name: type.charAt(0).toUpperCase() + type.slice(1) + ' ' + Math.floor(Math.random() * 100)
+    zHeight: (o.zHeight != null ? o.zHeight : 0),
+    name: o.name || (type.charAt(0).toUpperCase() + type.slice(1) + ' ' + Math.floor(Math.random() * 100))
   };
   if (type === 'text') {
     b.text = o.text || 'Text';
@@ -1808,6 +1847,7 @@ function addElement(type, opts) {
   if (!p) return null;
   var el = mkEl(type, opts);
   p.elements.push(el);
+  normalizeZHeights();
   saveSnapshot();
   emit();
   return el;
@@ -1847,6 +1887,7 @@ function removeElement(id) {
       if (state.pages[i].elements[j].id === id) {
         state.pages[i].elements.splice(j, 1);
         state.selectedElements = sel.filter(function(x) { return x !== id; });
+        normalizeZHeights();
         saveSnapshot();
         emit();
         return true;
@@ -1866,6 +1907,7 @@ function dupElement(id) {
         clone.y += 20;
         clone.name += ' copy';
         state.pages[i].elements.splice(j + 1, 0, clone);
+        normalizeZHeights();
         saveSnapshot();
         emit();
         return clone;
@@ -1875,34 +1917,108 @@ function dupElement(id) {
   return null;
 }
 
+/* --------------- Z-order (unique z-heights) ---------------
+   Every element carries an integer `zHeight`. The invariant — mirroring the
+   diagram tool — is that no two elements on a page share a zHeight: the stack
+   is a dense rank space 0..N-1, re-derived by normalizeZHeights(). renderPage()
+   draws z-index = zHeight + 1, so array order no longer decides stacking; only
+   zHeight does. */
+function zElementList() {
+  var p = cpage();
+  if (!p) return [];
+  var entries = [];
+  p.elements.forEach(function(el, i) {
+    entries.push({ obj: el, id: el.id, z: (el.zHeight != null ? el.zHeight : 0), order: i });
+  });
+  entries.sort(function(a, b) {
+    if (a.z !== b.z) return a.z - b.z;
+    return a.order - b.order;
+  });
+  return entries;
+}
+
+/* Enforce the uniqueness invariant: assign dense ranks 0..N-1 ascending by
+   current stack order. Idempotent. */
+function normalizeZHeights() {
+  zElementList().forEach(function(e, rank) { e.obj.zHeight = rank; });
+}
+
+/* Render-time map of element id -> 1-based z-index (higher = on top). */
+function computeZOrder() {
+  var map = {};
+  zElementList().forEach(function(e, i) { map[e.id] = i + 1; });
+  return map;
+}
+
+function zElementRank(id) {
+  var list = zElementList();
+  for (var i = 0; i < list.length; i++) { if (list[i].id === id) return i; }
+  return -1;
+}
+
+/* Move one element to a specific rank in the stack, then re-densify. Returns
+   false when the id is not on the active page. */
+function moveZToRank(id, rank) {
+  var list = zElementList();
+  var from = -1;
+  for (var i = 0; i < list.length; i++) { if (list[i].id === id) { from = i; break; } }
+  if (from < 0) return false;
+  var to = Math.max(0, Math.min(list.length - 1, rank));
+  var e = list.splice(from, 1)[0];
+  list.splice(to, 0, e);
+  list.forEach(function(x, i) { x.obj.zHeight = i; });
+  return true;
+}
+
+function zLabel(id) {
+  var d = getEl(id);
+  return d ? (d.el.name || id) : id;
+}
+
+function bringToFront(id) {
+  if (zElementRank(id) < 0) return false;
+  moveZToRank(id, zElementList().length - 1);
+  saveSnapshot(); emit();
+  return true;
+}
+
+function sendToBack(id) {
+  if (zElementRank(id) < 0) return false;
+  moveZToRank(id, 0);
+  saveSnapshot(); emit();
+  return true;
+}
+
 function bringForward(id) {
-  for (var i = 0; i < state.pages.length; i++) {
-    var es = state.pages[i].elements;
-    for (var j = 0; j < es.length; j++) {
-      if (es[j].id === id && j < es.length - 1) {
-        es.push(es.splice(j, 1)[0]);
-        saveSnapshot();
-        emit();
-        return true;
-      }
-    }
-  }
-  return false;
+  var r = zElementRank(id);
+  if (r < 0 || r >= zElementList().length - 1) return false;
+  moveZToRank(id, r + 1);
+  saveSnapshot(); emit();
+  return true;
 }
 
 function sendBackward(id) {
-  for (var i = 0; i < state.pages.length; i++) {
-    var es = state.pages[i].elements;
-    for (var j = 0; j < es.length; j++) {
-      if (es[j].id === id && j > 0) {
-        es.unshift(es.splice(j, 1)[0]);
-        saveSnapshot();
-        emit();
-        return true;
-      }
-    }
-  }
-  return false;
+  var r = zElementRank(id);
+  if (r <= 0) return false;
+  moveZToRank(id, r - 1);
+  saveSnapshot(); emit();
+  return true;
+}
+
+/* Apply a full top-first ordering of ids (as shown in the Layers panel) to the
+   current page. The bottom of the list is rank 0. Mutates state and records an
+   undo snapshot, but does not emit — callers emit once after a drag settles. */
+function applyLayerOrder(idsTopFirst) {
+  var p = cpage();
+  if (!p) return;
+  var n = idsTopFirst.length;
+  var rank = {};
+  idsTopFirst.forEach(function(id, i) { rank[id] = n - 1 - i; });
+  p.elements.forEach(function(el) {
+    if (rank[el.id] != null) el.zHeight = rank[el.id];
+  });
+  normalizeZHeights();
+  saveSnapshot();
 }
 
 /* --------------- Shape alignment (Properties ▸ Alignment) --------------- */
@@ -1995,6 +2111,45 @@ function alignSelection(anchor, target) {
   });
   /* Snapshot the post-mutation state, matching the rest of the app (the undo
      stack top always equals the live state, so undo/redo round-trips). */
+  saveSnapshot();
+  updateProps();
+  emit();
+}
+
+/* Horizontal-only alignment: identical to alignSelection on the x axis but it
+   never touches y, so a title can be snapped left/center/right on the page
+   while keeping its vertical position (and height) untouched. */
+function alignSelectionH(h, target) {
+  if (state.readOnly) return;
+  var ids = state.selectedElements;
+  if (!ids || !ids.length) return;
+  if ('lcr'.indexOf(h) === -1) return;
+  var kind = ALIGN_TARGETS.indexOf(target) === -1 ? state.alignTarget : target;
+  var box = alignTargetBox(kind);
+  if (!box) {
+    if (kind === 'selection') showToast('Select two or more elements to align to the selection.');
+    return;
+  }
+  var plan = [];
+  ids.forEach(function(id) {
+    var g = getEl(id);
+    if (!g) return;
+    var b = elBBox(g.el);
+    if (!b) return;
+    var tx = b.x;
+    if (h === 'l') tx = box.x;
+    else if (h === 'c') tx = box.x + (box.w - b.w) / 2;
+    else if (h === 'r') tx = box.x + box.w - b.w;
+    var dx = Math.round(tx) - b.x;
+    if (dx) plan.push({ g: g, dx: dx });
+  });
+  if (!plan.length) return;
+  plan.forEach(function(it) {
+    var el = it.g.el;
+    el.x += it.dx;
+    if (el.type === 'line') el.x2 += it.dx;
+    syncElementDOM(el.id);
+  });
   saveSnapshot();
   updateProps();
   emit();
@@ -2393,6 +2548,44 @@ function exportElementsHTML(pg, off) {
   return wrap.innerHTML;
 }
 
+/* Element/page CSS shared by the print HTML and the html2canvas PDF/raster
+   stage. exportElementsHTML() emits the very same domEl() markup the canvas
+   renders, so shipping these rules keeps the export pixel-faithful (see §32). */
+function exportElementCSS() {
+  return '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}\n' +
+    '.page{position:relative;overflow:hidden;page-break-after:always;margin:0 auto;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}\n' +
+    '.page>*{position:absolute;}\n' +
+    '.canvas-element{position:absolute;border:1px solid transparent;}\n' +
+    '.el-text{white-space:pre-wrap;word-break:break-word;min-width:20px;min-height:20px;}\n' +
+    '.el-clip{position:absolute;top:0;left:0;width:100%;height:100%;box-sizing:border-box;}\n' +
+    '.el-content{display:block;width:100%;box-sizing:border-box;}\n' +
+    '.el-image{overflow:visible;}\n' +
+    '.el-image img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit;}\n' +
+    '.drop-cap::first-letter{float:left;font-size:3em;line-height:.8;padding-right:6px;padding-top:4px;font-weight:700;}\n';
+}
+
+/* Off-screen live DOM node for one page, fed to html2canvas. Uses the exact
+   same markup and CSS as exportHTML() so pixels match across HTML/PDF/PNG. */
+function buildExportStage(pg, box) {
+  var host = document.createElement('div');
+  host.className = 'page';
+  host.style.cssText = 'position:absolute;top:0;left:0;width:' + box.ow + 'px;height:' + box.oh + 'px;background:' + (pg.background || '#FFFFFF') + ';overflow:hidden;';
+  var style = document.createElement('style');
+  style.textContent = exportElementCSS();
+  host.appendChild(style);
+  host.insertAdjacentHTML('beforeend', exportElementsHTML(pg, box.off));
+  if (box.bleed > 0) host.insertAdjacentHTML('beforeend', cropMarksHTML(box.bleed, box.pw, box.ph));
+  document.body.appendChild(host);
+  return host;
+}
+
+/* Opaque page colour for JPEG/PDF output (JPEG has no alpha channel, so a
+   transparent page would otherwise render black). */
+function solidBg(pg) {
+  var bg = pg && pg.background;
+  return (!bg || bg === 'transparent') ? '#FFFFFF' : bg;
+}
+
 function exportHTML() {
   /* No web fonts are linked on purpose: the canvas loads none either, and the
      font-family choices (Georgia, Times New Roman, Arial, Helvetica Neue,
@@ -2408,19 +2601,7 @@ function exportHTML() {
   h += '@page{size:' + fromPx(fb.ow, 'in').toFixed(4) + 'in ' + fromPx(fb.oh, 'in').toFixed(4) + 'in;margin:0;}\n';
   h += 'html,body{margin:0;padding:0;}\n';
   h += 'body{font-family:sans-serif;background:#8A8A8E;}\n';
-  /* Mirror the canvas stylesheet. exportElementsHTML() now emits the very same
-     domEl() markup the canvas renders, so shipping these rules (the global
-     box-sizing/margin reset plus the .el-* classes) makes the print layout
-     identical to the screen layout. See §32. */
-  h += '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}\n';
-  h += '.page{position:relative;overflow:hidden;page-break-after:always;margin:0 auto;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}\n';
-  h += '.page>*{position:absolute;}\n';
-  h += '.canvas-element{position:absolute;border:1px solid transparent;}\n';
-  h += '.el-text{white-space:pre-wrap;word-break:break-word;min-width:20px;min-height:20px;}\n';
-  h += '.el-content{display:block;width:100%;box-sizing:border-box;}\n';
-  h += '.el-image{overflow:hidden;}\n';
-  h += '.el-image img{width:100%;height:100%;object-fit:cover;display:block;}\n';
-  h += '.drop-cap::first-letter{float:left;font-size:3em;line-height:.8;padding-right:6px;padding-top:4px;font-weight:700;}\n';
+  h += exportElementCSS();
   h += '@media print{body{background:none;}.page{margin:0;}}\n';
   h += '</style>\n</head>\n<body>\n';
   state.pages.forEach(function(pg) {
@@ -2433,6 +2614,21 @@ function exportHTML() {
   });
   h += '</body>\n</html>';
   return h;
+}
+
+/* Download the standalone, self-contained print HTML (the HTML option in the
+   export menu). PDF/PNG/JPG are rasterised from the same markup. */
+function exportHTMLFile() {
+  var html = exportHTML();
+  var blob = new Blob([html], { type: 'text/html' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'layout-export.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(a.href);
+  showToast('Exported as layout-export.html');
 }
 
 /* --------------- Render Helpers --------------- */
@@ -2484,57 +2680,63 @@ function naturalImageSize(id, src, cb) {
 }
 
 function exportPDF() {
-  var html = exportHTML();
-  var w = window.open('', '_blank', 'width=900,height=700');
-  if (!w) { showToast('Please allow popups for PDF export', 'error'); return; }
-  w.document.write(html);
-  w.document.close();
-  try { w.document.title = (state.project && state.project.name ? state.project.name : 'Layout') + '.pdf'; } catch (e) {}
-  var printed = false;
-  function doPrint() { if (printed) return; printed = true; try { w.print(); } catch (e) {} }
-  w.onload = function() { setTimeout(doPrint, 250); };
-  setTimeout(doPrint, 1200); /* fallback if onload already fired */
-  showToast('In the print dialog choose "Actual size" and no scaling');
+  if (!window.html2canvas || !window.jspdf || !window.jspdf.jsPDF) {
+    showToast('PDF export library failed to load', 'error'); return;
+  }
+  var pages = state.pages || [];
+  if (!pages.length) return;
+  var base = (state.project && state.project.name ? state.project.name : 'layout').replace(/[^a-z0-9_-]/gi, '_');
+  showToast('Rendering PDF…');
+  var pdf = null;
+  var chain = Promise.resolve();
+  pages.forEach(function(pg) {
+    chain = chain.then(function() {
+      var box = exportBox(pg);
+      var host = buildExportStage(pg, box);
+      return html2canvas(host, {
+        scale: 2,
+        backgroundColor: solidBg(pg),
+        width: box.ow,
+        height: box.oh
+      }).then(function(canvas) {
+        document.body.removeChild(host);
+        var orientation = box.ow > box.oh ? 'l' : 'p';
+        var jsPDF = window.jspdf.jsPDF;
+        if (!pdf) pdf = new jsPDF(orientation, 'px', [box.ow, box.oh]);
+        else pdf.addPage([box.ow, box.oh], orientation);
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, box.ow, box.oh);
+      }).catch(function(err) {
+        if (host.parentNode) document.body.removeChild(host);
+        throw err;
+      });
+    });
+  });
+  chain.then(function() {
+    pdf.save(base + '.pdf');
+    showToast('Exported ' + base + '.pdf');
+  }).catch(function(err) {
+    showToast('PDF export failed: ' + err.message, 'error');
+  });
 }
 
-/* Raster export via SVG <foreignObject> (no dependencies). Caveats (§10.3):
-   web fonts may not load into the SVG image, cross-origin images taint the
-   canvas, and some browsers (older Safari) render foreignObject poorly. */
+/* Raster export via html2canvas (the same engine behind the multi-page PDF).
+   Renders just the current page at the project DPI. */
 function exportRaster(format) {
   var pg = cpage();
   if (!pg) return;
-  if (typeof XMLSerializer === 'undefined') { showToast('Raster export is not supported in this browser', 'error'); return; }
+  if (!window.html2canvas) { showToast('Raster export library failed to load', 'error'); return; }
   var dpi = (state.project && state.project.dpi) || 300;
   var pw = pg.pw || PW, ph = pg.ph || PH;
-  var W = Math.round(pw * dpi / PX_PER_IN), H = Math.round(ph * dpi / PX_PER_IN);
+  var scale = dpi / PX_PER_IN;
+  var W = Math.round(pw * scale), H = Math.round(ph * scale);
   if (!(W > 0) || !(H > 0) || W * H > 80000000) { showToast('Raster size too large (' + W + '×' + H + ')', 'error'); return; }
-  var bg = pg.background || '#FFFFFF';
-
-  /* Build a detached, self-contained copy of the page so XMLSerializer emits XHTML. */
-  var host = document.createElement('div');
-  host.setAttribute('style', 'position:relative;width:' + pw + 'px;height:' + ph + 'px;background:' + bg + ';overflow:hidden;');
-  var style = document.createElement('style');
-  style.textContent = '*,*::before,*::after{box-sizing:border-box}.canvas-element{position:absolute;border:0;margin:0}.el-content{display:block;width:100%;box-sizing:border-box}.el-text{white-space:pre-wrap;word-break:break-word}.el-image{overflow:hidden}.el-image img{width:100%;height:100%;object-fit:cover;display:block}';
-  host.appendChild(style);
-  pg.elements.forEach(function(el, i) { if (el.visible) host.appendChild(domEl(el, i)); });
-
-  var xhtml;
-  try { xhtml = new XMLSerializer().serializeToString(host); }
-  catch (e) { showToast('Raster export failed: ' + e.message, 'error'); return; }
-
-  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + pw + ' ' + ph + '">' +
-            '<foreignObject x="0" y="0" width="' + pw + '" height="' + ph + '">' + xhtml + '</foreignObject></svg>';
-  var url = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
   var mime = format === 'jpeg' ? 'image/jpeg' : 'image/png';
   var ext = format === 'jpeg' ? 'jpg' : 'png';
-  var img = new Image();
-  img.onload = function() {
-    var canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, W, H);
-    ctx.drawImage(img, 0, 0, W, H);
+  var bg = pg.background || '#FFFFFF';
+  var host = buildExportStage(pg, { off: 0, bleed: 0, pw: pw, ph: ph, ow: pw, oh: ph });
+  showToast('Rendering ' + ext.toUpperCase() + '…');
+  html2canvas(host, { scale: scale, backgroundColor: (format === 'jpeg' ? solidBg(pg) : bg), width: pw, height: ph }).then(function(canvas) {
+    document.body.removeChild(host);
     function done(blob) {
       if (!blob) { showToast('Raster export failed', 'error'); return; }
       var a = document.createElement('a');
@@ -2550,9 +2752,10 @@ function exportRaster(format) {
     } catch (e) {
       showToast('Raster export blocked (cross-origin image?): ' + e.message, 'error');
     }
-  };
-  img.onerror = function() { showToast('Raster export failed — the browser could not render the page. Try PDF instead.', 'error'); };
-  img.src = url;
+  }).catch(function(err) {
+    if (host.parentNode) document.body.removeChild(host);
+    showToast('Raster export failed — the browser could not render the page. ' + err.message, 'error');
+  });
 }
 
 /* --------------- Canvas Renderer --------------- */
@@ -2591,14 +2794,18 @@ function renderPage() {
   }
 }
 
-/* Find the direct .el-content child of a canvas box. */
+/* Find the .el-content node of a canvas box. Text boxes wrap the content in
+   an .el-clip layer which owns overflow/padding (so resize handles — siblings
+   of .el-clip — are never clipped by overflow:hidden); accept a direct
+   .el-content child too for backwards compatibility. */
 function getContentEl(box) {
   if (!box) return null;
   var kids = box.children;
   for (var i = 0; i < kids.length; i++) {
     if (kids[i].classList && kids[i].classList.contains('el-content')) return kids[i];
   }
-  return null;
+  var clip = box.querySelector('.el-clip');
+  return clip ? clip.querySelector('.el-content') : null;
 }
 
 /* Single source of truth for text-box styling.
@@ -2607,15 +2814,40 @@ function getContentEl(box) {
    Used by domEl() (normal render) and applyElementStyles() (edit mode) so the
    two are always pixel-identical. */
 function styleTextBox(box, content, el) {
+  var clip = content && content.parentElement && content.parentElement.classList.contains('el-clip') ? content.parentElement : null;
+  var justify = el.verticalAlign === 'middle' ? 'center' : el.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
+  var overflowVal = el.overflow === 'visible' ? 'visible' : el.overflow === 'scroll' ? 'auto' : 'hidden';
+  var pad = (el.padding != null ? el.padding : 8);
   /* --- Box / chrome --- */
   box.style.display = 'flex';
   box.style.flexDirection = 'column';
-  box.style.justifyContent = el.verticalAlign === 'middle' ? 'center' : el.verticalAlign === 'bottom' ? 'flex-end' : 'flex-start';
-  box.style.padding = (el.padding != null ? el.padding : 8) + 'px';
-  box.style.overflow = el.overflow === 'visible' ? 'visible' : el.overflow === 'scroll' ? 'auto' : 'hidden';
+  box.style.justifyContent = justify;
   box.style.background = rgba(el.fill, el.fillOpacity);
   box.style.border = el.strokeWidth > 0 ? el.strokeWidth + 'px solid ' + rgba(el.stroke, el.strokeOpacity) : 'none';
   box.style.borderRadius = el.radius + 'px';
+  if (clip) {
+    /* Padding + overflow live on the inner .el-clip so the box itself can stay
+       overflow:visible and never clip the resize handles (see §7.2). The clip
+       exactly fills the box's padding box, so the visible text region and the
+       clip/scroll behaviour are identical to the old box-level overflow. */
+    box.style.padding = '0px';
+    box.style.overflow = 'visible';
+    clip.style.position = 'absolute';
+    clip.style.top = '0';
+    clip.style.left = '0';
+    clip.style.width = '100%';
+    clip.style.height = '100%';
+    clip.style.boxSizing = 'border-box';
+    clip.style.padding = pad + 'px';
+    clip.style.display = 'flex';
+    clip.style.flexDirection = 'column';
+    clip.style.justifyContent = justify;
+    clip.style.overflow = overflowVal;
+    clip.style.borderRadius = 'inherit';
+  } else {
+    box.style.padding = pad + 'px';
+    box.style.overflow = overflowVal;
+  }
   /* --- Content / text --- */
   if (!content) return;
   content.style.width = '100%';
@@ -2649,16 +2881,19 @@ function domEl(el, i) {
   d.style.width = el.w + 'px';
   d.style.height = el.h + 'px';
   d.style.opacity = (el.opacity / 100);
-  d.style.zIndex = i + 1;
+  d.style.zIndex = (el.zHeight != null ? el.zHeight : i) + 1;
   /* Rotation */
   if (el.rotation) d.style.transform = 'rotate(' + el.rotation + 'deg)';
 
   if (el.type === 'text') {
+    var clip = document.createElement('div');
+    clip.className = 'el-clip';
     var content = document.createElement('div');
     content.className = 'el-content';
     content.innerHTML = el.richText || el.text;
     content.spellcheck = true;
-    d.appendChild(content);
+    clip.appendChild(content);
+    d.appendChild(clip);
     styleTextBox(d, content, el);
   } else if (el.type === 'line') {
     d.dataset.type = 'line';
@@ -2754,7 +2989,12 @@ function drawThumb(canvas, pg) {
   ctx.fillRect(0, 0, cw, ch);
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(ox, oy, pw * s, ph * s);
-  pg.elements.forEach(function(el) {
+  var drawOrder = pg.elements.slice().sort(function(a, b) {
+    var az = (a.zHeight != null ? a.zHeight : 0), bz = (b.zHeight != null ? b.zHeight : 0);
+    if (az !== bz) return az - bz;
+    return pg.elements.indexOf(a) - pg.elements.indexOf(b);
+  });
+  drawOrder.forEach(function(el) {
     if (!el.visible) return;
     ctx.globalAlpha = el.opacity / 100;
     if (el.type === 'text') {
@@ -2793,6 +3033,8 @@ var tIconSVG = {
   image: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
 };
 
+var layerDragId = null, layerDragDropped = false, layerDragListBound = false;
+
 function renderLayers() {
   var list = $('layer-list');
   if (!list) return;
@@ -2800,12 +3042,32 @@ function renderLayers() {
   var p = cpage();
   if (!p) return;
   var sel = state.selectedElements;
-  p.elements.slice().reverse().forEach(function(el) {
+  /* List-level drag plumbing, bound once (innerHTML clearing keeps listeners). */
+  if (!layerDragListBound) {
+    layerDragListBound = true;
+    list.addEventListener('dragover', function(e) {
+      if (layerDragId) e.preventDefault();
+    });
+    list.addEventListener('drop', function(e) {
+      if (!layerDragId) return;
+      e.preventDefault();
+      layerDragDropped = true;
+      var ids = [];
+      for (var i = 0; i < list.children.length; i++) ids.push(list.children[i].dataset.id);
+      applyLayerOrder(ids);
+    });
+  }
+  /* Topmost first (highest zHeight at the top), matching the long-standing
+     Layers panel order and the tip on the About page. The z input reads the
+     element's unique rank. */
+  zElementList().reverse().forEach(function(entry) {
+    var el = entry.obj;
     var item = document.createElement('div');
     item.className = 'layer-item' + (sel.indexOf(el.id) !== -1 ? ' active' : '');
     item.dataset.id = el.id;
     item.setAttribute('role', 'listitem');
     item.setAttribute('tabindex', '0');
+    item.draggable = true;
 
     var ic = document.createElement('span');
     ic.className = 'layer-icon';
@@ -2815,6 +3077,15 @@ function renderLayers() {
     var nm = document.createElement('span');
     nm.className = 'layer-name';
     nm.textContent = el.name;
+    nm.title = el.name + ' — double-click to rename';
+
+    var z = document.createElement('input');
+    z.type = 'number';
+    z.className = 'layer-z';
+    z.value = (el.zHeight != null ? el.zHeight : 0);
+    z.min = 0;
+    z.title = 'Z position (higher = on top)';
+    z.setAttribute('aria-label', 'Z position of ' + (el.name || 'element'));
 
     var vis = document.createElement('span');
     vis.className = 'layer-visibility' + (el.visible ? '' : ' hidden');
@@ -2838,6 +3109,29 @@ function renderLayers() {
       vis.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleVis(); }
       });
+      /* Z input: move to a rank, re-densify and redraw. */
+      z.addEventListener('click', function(e) { e.stopPropagation(); });
+      z.addEventListener('keydown', function(e) {
+        e.stopPropagation();
+        if (e.key === 'Enter') z.blur();
+      });
+      z.addEventListener('change', function(e) {
+        e.stopPropagation();
+        if (state.readOnly) { z.value = (el.zHeight != null ? el.zHeight : 0); return; }
+        var v = parseInt(z.value, 10);
+        if (isNaN(v)) v = 0;
+        moveZToRank(eid, v);
+        saveSnapshot();
+        emit();
+      });
+      /* Double-click the name to rename in place. */
+      nm.addEventListener('dblclick', function(e) {
+        e.stopPropagation();
+        startLayerRename(nm, eid);
+      });
+      nm.addEventListener('click', function(e) {
+        if (nm.isContentEditable) e.stopPropagation();
+      });
       item.addEventListener('click', function() {
         var s2 = state.selectedElements;
         if (s2.indexOf(eid) !== -1) {
@@ -2859,11 +3153,83 @@ function renderLayers() {
       });
     })(el.id);
 
+    /* Drag to reorder: live-move the row in the DOM, then commit the new
+       top-first order on drop. A cancelled drag restores the list. */
+    var dragBlocked = false;
+    item.addEventListener('mousedown', function(e) {
+      var t = e.target;
+      dragBlocked = !!(t && t.closest && t.closest('input, [role="button"], .layer-name.renaming'));
+    });
+    item.addEventListener('dragstart', function(e) {
+      if (state.readOnly || dragBlocked || nm.isContentEditable) { e.preventDefault(); return; }
+      layerDragId = el.id;
+      layerDragDropped = false;
+      item.classList.add('dragging');
+      if (e.dataTransfer) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', el.id); } catch (err) {} }
+    });
+    item.addEventListener('dragover', function(e) {
+      if (!layerDragId || layerDragId === el.id) return;
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+      var dragged = null;
+      for (var k = 0; k < list.children.length; k++) {
+        if (list.children[k].classList.contains('dragging')) { dragged = list.children[k]; break; }
+      }
+      if (!dragged) return;
+      var r = item.getBoundingClientRect();
+      var after = (e.clientY - r.top) > r.height / 2;
+      list.insertBefore(dragged, after ? item.nextSibling : item);
+    });
+    item.addEventListener('dragend', function() {
+      item.classList.remove('dragging');
+      var wasDragging = layerDragId != null;
+      layerDragId = null;
+      if (!wasDragging) return;
+      if (layerDragDropped) emit();
+      else renderLayers();
+    });
+
     item.appendChild(ic);
     item.appendChild(nm);
     item.appendChild(vis);
+    item.appendChild(z);
     list.appendChild(item);
   });
+}
+
+/* Inline rename from the Layers panel. Commits on Enter/blur, reverts on Esc. */
+function startLayerRename(nmEl, eid) {
+  if (state.readOnly || nmEl.isContentEditable) return;
+  var original = nmEl.textContent;
+  var done = false;
+  nmEl.contentEditable = 'true';
+  nmEl.spellcheck = false;
+  nmEl.classList.add('renaming');
+  nmEl.focus();
+  var range = document.createRange();
+  range.selectNodeContents(nmEl);
+  var sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+  function finish(save) {
+    if (done) return;
+    done = true;
+    nmEl.contentEditable = 'false';
+    nmEl.classList.remove('renaming');
+    var val = (nmEl.textContent || '').replace(/\s+/g, ' ').trim();
+    if (save && val && val !== original) {
+      updEl(eid, { name: val });
+      saveSnapshot();
+    }
+    renderLayers();
+    updateProps();
+  }
+  nmEl.addEventListener('keydown', function(ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); finish(true); }
+    else if (ev.key === 'Escape') { ev.preventDefault(); finish(false); }
+    ev.stopPropagation();
+  });
+  nmEl.addEventListener('blur', function() { finish(true); });
 }
 /* --------------- Properties Panel --------------- */
 function updateProps() {
@@ -2994,6 +3360,10 @@ function updateProps() {
   setLenInput('prop-y', el.y);
   setLenInput('prop-w', el.w);
   setLenInput('prop-h', el.h);
+  var nameInput = $('prop-name');
+  if (nameInput && document.activeElement !== nameInput) nameInput.value = el.name || '';
+  var zInput = $('prop-z');
+  if (zInput && document.activeElement !== zInput) zInput.value = (el.zHeight != null ? el.zHeight : 0);
   $('prop-fill').value = el.fill === 'transparent' ? '#FFFFFF' : el.fill;
   $('prop-fillOpacity').value = el.fillOpacity != null ? el.fillOpacity : 100;
   $('prop-stroke').value = el.stroke;
@@ -3117,6 +3487,46 @@ function bindProps() {
       updateProps();
     });
   });
+
+  /* Element name — reflected live in the Layers panel. */
+  var nameInput = $('prop-name');
+  if (nameInput) {
+    nameInput.addEventListener('keydown', function(e) {
+      e.stopPropagation();
+      if (e.key === 'Enter') nameInput.blur();
+    });
+    nameInput.addEventListener('input', function() {
+      if (state.readOnly) return;
+      var val = nameInput.value.replace(/\s+/g, ' ').trim();
+      if (!val) return;
+      state.selectedElements.forEach(function(id) { updEl(id, { name: val }); });
+      renderLayers();
+      markProjectDirty();
+      autosave();
+    });
+    nameInput.addEventListener('blur', function() {
+      var g = getEl(state.selectedElements[0]);
+      if (g) nameInput.value = g.el.name || '';
+      if (!state.readOnly) saveSnapshot();
+    });
+  }
+
+  /* Z position — move each selected element to that rank, then re-densify. */
+  var zInput = $('prop-z');
+  if (zInput) {
+    zInput.addEventListener('keydown', function(e) {
+      e.stopPropagation();
+      if (e.key === 'Enter') zInput.blur();
+    });
+    zInput.addEventListener('change', function() {
+      if (state.readOnly) return;
+      var v = parseInt(zInput.value, 10);
+      if (isNaN(v)) v = 0;
+      state.selectedElements.forEach(function(id) { moveZToRank(id, v); });
+      saveSnapshot();
+      emit();
+    });
+  }
 
   var tc = $('prop-text-content');
   if (tc) {
@@ -3427,6 +3837,7 @@ function bindAlign() {
       if (ALIGN_TARGETS.indexOf(this.value) === -1) return;
       state.alignTarget = this.value;
       try { localStorage.setItem('lp-align-target', this.value); } catch (e) {}
+      updateHAlignBtn();
     });
   }
   var grid = $('prop-align-grid');
@@ -3438,6 +3849,41 @@ function bindAlign() {
       alignSelection(btn.dataset.align, state.alignTarget);
     });
   }
+  var hbtn = $('prop-align-h');
+  if (hbtn) {
+    updateHAlignBtn();
+    hbtn.addEventListener('click', function() {
+      if (state.readOnly) return;
+      var h = H_ALIGN_ORDER.indexOf(state.hAlign) === -1 ? 'c' : state.hAlign;
+      alignSelectionH(h, state.alignTarget);
+      state.hAlign = H_ALIGN_ORDER[(H_ALIGN_ORDER.indexOf(h) + 1) % H_ALIGN_ORDER.length];
+      updateHAlignBtn();
+    });
+  }
+}
+
+/* --------------- Horizontal-only snap button (Properties ▸ Alignment) --------------- */
+var H_ALIGN_ORDER = ['c', 'l', 'r'];
+
+function hAlignIcon(h) {
+  if (h === 'l') {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="5" x2="21" y2="5"/><line x1="3" y1="9" x2="15" y2="9"/><line x1="3" y1="13" x2="19" y2="13"/><line x1="3" y1="17" x2="11" y2="17"/></svg>';
+  }
+  if (h === 'r') {
+    return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="5" x2="21" y2="5"/><line x1="9" y1="9" x2="21" y2="9"/><line x1="5" y1="13" x2="21" y2="13"/><line x1="13" y1="17" x2="21" y2="17"/></svg>';
+  }
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><line x1="3" y1="5" x2="21" y2="5"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="5" y1="13" x2="19" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>';
+}
+
+function updateHAlignBtn() {
+  var btn = $('prop-align-h');
+  if (!btn) return;
+  var h = H_ALIGN_ORDER.indexOf(state.hAlign) === -1 ? 'c' : state.hAlign;
+  var label = h === 'l' ? 'Left' : h === 'r' ? 'Right' : 'Center';
+  btn.innerHTML = hAlignIcon(h) + '<span>Snap ' + label + '</span>';
+  var target = state.alignTarget === 'margins' ? 'margins' : state.alignTarget === 'selection' ? 'selection' : 'page';
+  btn.title = 'Snap ' + label.toLowerCase() + ' horizontally to the ' + target + ' — keeps vertical position. Click to cycle Center → Left → Right.';
+  btn.setAttribute('aria-label', btn.title);
 }
 
 /* --------------- Panel Editor Toolbar --------------- */
@@ -3728,6 +4174,7 @@ function refresh() {
   renderGrid();
   renderGuides();
   renderRulers();
+  normalizeZHeights();
   renderPage();
   applyAutoResize();
   renderPages();
@@ -3879,10 +4326,16 @@ function bindToolbar() {
     state.selectedElements.slice().forEach(function(id) { removeElement(id); });
   });
   $('bring-front').addEventListener('click', function() {
+    state.selectedElements.forEach(function(id) { bringToFront(id); });
+  });
+  $('bring-forward').addEventListener('click', function() {
     state.selectedElements.forEach(function(id) { bringForward(id); });
   });
-  $('send-back').addEventListener('click', function() {
+  $('send-backward').addEventListener('click', function() {
     state.selectedElements.forEach(function(id) { sendBackward(id); });
+  });
+  $('send-back').addEventListener('click', function() {
+    state.selectedElements.forEach(function(id) { sendToBack(id); });
   });
   $('undo-btn').addEventListener('click', undo);
   $('redo-btn').addEventListener('click', redo);
@@ -3909,34 +4362,47 @@ function bindToolbar() {
 
   $('add-page-btn').addEventListener('click', addPage);
 
-  $('export-btn').addEventListener('click', function() {
-    try {
-      var html = exportHTML();
-      var blob = new Blob([html], { type: 'text/html' });
-      var a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'layout-export.html';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(a.href);
-      showToast('Exported as layout-export.html');
-    } catch (err) {
-      showToast('Export failed: ' + err.message, 'error');
+  /* Export dropdown — one button with format options (mirrors the diagram project) */
+  (function bindExportMenu() {
+    var btnExport = $('btn-export'), exportDrop = $('export-drop');
+    if (!btnExport || !exportDrop) return;
+    function closeExportMenu() {
+      exportDrop.classList.remove('visible');
+      btnExport.setAttribute('aria-expanded', 'false');
     }
-  });
-
-  $('pdf-btn').addEventListener('click', function() {
-    try { exportPDF(); } catch (err) { showToast('PDF export failed: ' + err.message, 'error'); }
-  });
-
-  $('png-btn').addEventListener('click', function() {
-    try { exportRaster('png'); } catch (err) { showToast('PNG export failed: ' + err.message, 'error'); }
-  });
-
-  $('jpeg-btn').addEventListener('click', function() {
-    try { exportRaster('jpeg'); } catch (err) { showToast('JPEG export failed: ' + err.message, 'error'); }
-  });
+    btnExport.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var open = exportDrop.classList.toggle('visible');
+      if (open) {
+        var br = btnExport.getBoundingClientRect();
+        exportDrop.style.left = Math.max(4, br.left + br.width - 200) + 'px';
+        exportDrop.style.top = br.bottom + 'px';
+      }
+      btnExport.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+    document.addEventListener('click', function(e) {
+      if (!exportDrop.contains(e.target) && e.target !== btnExport) closeExportMenu();
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && exportDrop.classList.contains('visible')) { closeExportMenu(); btnExport.focus(); }
+    });
+    exportDrop.querySelectorAll('.export-item').forEach(function(item) {
+      function run() {
+        closeExportMenu();
+        var act = item.dataset.action;
+        try {
+          if (act === 'export-pdf') exportPDF();
+          else if (act === 'export-png') exportRaster('png');
+          else if (act === 'export-jpg') exportRaster('jpeg');
+          else if (act === 'export-html') exportHTMLFile();
+        } catch (err) { showToast('Export failed: ' + err.message, 'error'); }
+      }
+      item.addEventListener('click', function(e) { e.stopPropagation(); run(); });
+      item.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); run(); }
+      });
+    });
+  })();
 
   /* Tabs */
   document.querySelectorAll('.tab-btn').forEach(function(b) {
@@ -4355,12 +4821,19 @@ function findEl(x, y) {
   var ct = $('page-content');
   if (!ct) return null;
   var els = ct.querySelectorAll('.canvas-element');
+  /* Pick the topmost hit by zHeight, not by array/DOM order: z order is now
+     independent of insertion order, so the last DOM node is not necessarily
+     the frontmost element. */
+  var best = null, bestZ = -Infinity;
   for (var i = els.length - 1; i >= 0; i--) {
     var id = els[i].dataset.id;
     var d = getEl(id);
-    if (d && d.el.visible && hitTest(d.el, x, y)) return { dom: els[i], data: d };
+    if (d && d.el.visible && hitTest(d.el, x, y)) {
+      var z = (d.el.zHeight != null ? d.el.zHeight : i);
+      if (z > bestZ) { bestZ = z; best = { dom: els[i], data: d }; }
+    }
   }
-  return null;
+  return best;
 }
 
 /* --------------- Interaction State --------------- */
@@ -4627,7 +5100,7 @@ function handleInlineInput() {
 /* Show and position the inline formatting toolbar above the editing element */
 function showInlineToolbar(dom) {
   /* Accept either the box or its content node; always position relative to the box */
-  if (dom && dom.classList && dom.classList.contains('el-content') && dom.parentElement) dom = dom.parentElement;
+  if (dom && dom.classList && dom.classList.contains('el-content')) dom = (dom.closest && dom.closest('.canvas-element')) || dom.parentElement;
   var toolbar = $('inline-toolbar');
   if (!toolbar) return;
   /* Show off-screen first to measure dimensions */
@@ -4881,9 +5354,27 @@ function bindInlineToolbar() {
 
 /* --------------- Pointer Events (unified mouse+touch) --------------- */
 function onPointerDown(e) {
-  if (state.readOnly) return;
   var ct = $('page-content');
   if (!ct) return;
+
+  /* Middle- or right-button drag pans the canvas — the same right-drag gesture
+     the diagram project uses. Handled before the read-only guard so panning
+     still works when another tab is editing. Right-clicking a text element is
+     left alone so the native text menu (copy, spell-check, etc.) still appears. */
+  if (e.button === 1 || e.button === 2) {
+    var overText = e.button === 2 && e.target && e.target.closest ? e.target.closest('.el-text') : null;
+    if (!overText) {
+      state.isPanning = true;
+      state.panStart = { x: e.clientX, y: e.clientY };
+      if (e.currentTarget && e.currentTarget.setPointerCapture) {
+        try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+      }
+      e.preventDefault();
+    }
+    return;
+  }
+
+  if (state.readOnly) return;
 
   /* If in inline edit mode, let clicks inside the editor pass through */
   if (state.editingElementId) {
@@ -4919,12 +5410,6 @@ function onPointerDown(e) {
     return;
   }
 
-  if (e.button === 1) {
-    state.isPanning = true;
-    state.panStart = { x: e.clientX, y: e.clientY };
-    e.preventDefault();
-    return;
-  }
   if (e.button !== 0) return;
 
   var handle = e.target.closest ? e.target.closest('.resize-handle') : null;
@@ -5052,12 +5537,29 @@ function onPointerMove(e) {
     if (d) {
       var ddx = pt.x - dragStart.x, ddy = pt.y - dragStart.y;
       var patch = {};
-      if (endpointSide === 'start') {
-        patch.x = snap(endpointOrig.x + ddx, 'x');
-        patch.y = snap(endpointOrig.y + ddy, 'y');
+      var nx = endpointOrig.x + ddx, ny = endpointOrig.y + ddy;
+      if (e.shiftKey) {
+        /* Shift constrains the dragged line end to 15° increments measured from
+           the opposite (fixed) end — the same rule as drawing a line. The end
+           keeps its distance from the pivot and only its angle snaps. */
+        var fx = endpointSide === 'start' ? d.el.x2 : d.el.x;
+        var fy = endpointSide === 'start' ? d.el.y2 : d.el.y;
+        var adx = nx - fx, ady = ny - fy;
+        var step = Math.PI / 12;
+        var ang = Math.round(Math.atan2(ady, adx) / step) * step;
+        var len = Math.sqrt(adx * adx + ady * ady);
+        nx = fx + len * Math.cos(ang);
+        ny = fy + len * Math.sin(ang);
       } else {
-        patch.x2 = snap(endpointOrig.x + ddx, 'x');
-        patch.y2 = snap(endpointOrig.y + ddy, 'y');
+        nx = snap(nx, 'x');
+        ny = snap(ny, 'y');
+      }
+      if (endpointSide === 'start') {
+        patch.x = nx;
+        patch.y = ny;
+      } else {
+        patch.x2 = nx;
+        patch.y2 = ny;
       }
       updEl(endpointLineId, patch);
       var de = ct.querySelector('[data-id="' + endpointLineId + '"]');
@@ -5103,6 +5605,11 @@ function onPointerMove(e) {
 
   if (dragging && dragIds) {
     var ddx = pt.x - dragStart.x, ddy = pt.y - dragStart.y;
+    /* Shift locks movement to one axis: whichever direction the pointer moved
+       furthest wins, and the other coordinate is held exactly as it started. */
+    if (e.shiftKey) {
+      if (Math.abs(ddx) >= Math.abs(ddy)) ddy = 0; else ddx = 0;
+    }
     dragIds.forEach(function(id, i) {
       if (!dragOrig[i]) return;
       var d = getEl(id);
@@ -5192,7 +5699,13 @@ function onPointerMove(e) {
 function onPointerUp(e) {
   delete state.pointers[e.pointerId];
   if (state.pinchStart && Object.keys(state.pointers).length < 2) state.pinchStart = null;
-  if (state.isPanning) { state.isPanning = false; return; }
+  if (state.isPanning) {
+    state.isPanning = false;
+    if (e.currentTarget && e.currentTarget.releasePointerCapture) {
+      try { e.currentTarget.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    return;
+  }
   /* If in edit mode, let the browser handle the click — don't process as canvas interaction */
   if (state.editingElementId) return;
 
@@ -5314,6 +5827,18 @@ function onKey(e) {
     if (state.editingElementId) return;
     e.preventDefault();
     state.selectedElements.forEach(function(id) { dupElement(id); });
+    return;
+  }
+  /* Z-order shortcuts: Ctrl+Shift+] / [ = front/back, Ctrl+] / [ = step.
+     Shift+] yields '}' on US layouts, so accept both forms. */
+  if (ctrl && (key === ']' || key === '}' || key === '[' || key === '{')) {
+    if (state.editingElementId) return;
+    e.preventDefault();
+    var raise = (key === ']' || key === '}');
+    state.selectedElements.forEach(function(id) {
+      if (e.shiftKey) { if (raise) bringToFront(id); else sendToBack(id); }
+      else { if (raise) bringForward(id); else sendBackward(id); }
+    });
     return;
   }
   if (ctrl && key === 'f') {
@@ -5747,18 +6272,6 @@ function init() {
   document.addEventListener('keydown', onKey);
   document.addEventListener('keyup', function(e) {
     if (ARROW_DELTA[e.key]) _arrowMoveActive = false;
-    if (e.key === 'Shift') setSnapTemp(false);
-  });
-
-  /* Momentary snapping (§30): hold Shift to snap while the master switch is off.
-     Registered separately from onKey() because Shift must work in read-only mode
-     and must not be swallowed by the editing / input-field guards. */
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Shift') setSnapTemp(true);
-  });
-  window.addEventListener('blur', function() { setSnapTemp(false); });
-  document.addEventListener('visibilitychange', function() {
-    if (document.hidden) setSnapTemp(false);
   });
 
   /* Re-enable context menu on canvas for text editing */

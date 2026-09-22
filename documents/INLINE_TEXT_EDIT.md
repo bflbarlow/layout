@@ -101,7 +101,9 @@ Every **text** element renders as two nested nodes:
 2. `renderPage()`'s mid-edit guard saves and restores `getContentEl(box).innerHTML` (and re-sets `contenteditable` on the content node), never the box.
 3. `showHandles()` intentionally skips `state.editingElementId` — resize handles are hidden while text-editing (matching Google Slides), so they can never be appended inside the editable.
 4. The panel editor's live-patch handlers write `getContentEl(dom).innerHTML`, not `dom.innerHTML`, so they no longer destroy the box's handles.
-5. `exportHTML()` emits the same nested structure (`<div style=box><div class="el-content…" style=content>…</div></div>`), keeping export pixel-identical to the canvas.
+5. `exportHTML()` emits the same nested structure (`<div style=box><div class="el-clip"…><div class="el-content…" style=content>…</div></div></div>`), keeping export pixel-identical to the canvas.
+
+> **Later addition — the `.el-clip` layer.** Text boxes gained an intermediate `.el-clip` wrapper between the box and `.el-content`. Padding and the `overflow` mode (`clip`/`scroll`/`visible`) now live on `.el-clip`, which absolutely fills the box's padding box; the box itself stays `overflow:visible`. This reproduces the exact text clip/scroll region while letting the 8 resize handles — children of the box, positioned 11px outside it — escape clipping (a text box previously had `overflow:hidden`, so its handles were invisible and unclickable). `getContentEl(box)` looks through `.el-clip`, `styleTextBox()` styles it, and `showInlineToolbar()` climbs to `.canvas-element` via `closest()`. The `.el-clip` static rule is also mirrored in `exportElementCSS()`.
 
 
 ---
